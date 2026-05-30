@@ -19,9 +19,14 @@ class SettingsDao extends DatabaseAccessor<AppDatabase> with _$SettingsDaoMixin 
     return result?.value;
   }
 
-  Future<void> setSetting(String key, String value) async {
-    await into(settings).insertOnConflictUpdate(
-      SettingsCompanion.insert(key: key, value: value),
+  Future<void> setSetting(String key, String value) {
+    return into(settings).insert(
+      Setting(key: key, value: value, createdAt: DateTime.now(), updatedAt: DateTime.now()),
+      mode: InsertMode.insertOrReplace,
     );
+  }
+
+  Future<void> deleteSetting(String key) {
+    return (delete(settings)..where((s) => s.key.equals(key))).go();
   }
 }

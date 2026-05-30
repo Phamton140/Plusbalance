@@ -43,6 +43,25 @@ class ServicesScreen extends ConsumerWidget {
                   color: Colors.redAccent,
                   child: const Icon(Icons.delete, color: Colors.white),
                 ),
+                confirmDismiss: (direction) async {
+                  return await showDialog(
+                    context: context,
+                    builder: (BuildContext context) {
+                      return AlertDialog(
+                        title: const Text("Eliminar Servicio"),
+                        content: const Text("¿Estás seguro de eliminar este servicio? Las transacciones pasadas no se borrarán."),
+                        actions: [
+                          TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text("Cancelar")),
+                          ElevatedButton(
+                            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                            onPressed: () => Navigator.of(context).pop(true), 
+                            child: const Text("Eliminar")
+                          ),
+                        ],
+                      );
+                    },
+                  );
+                },
                 onDismissed: (direction) async {
                   await ref.read(servicesDaoProvider).deleteService(service.id);
                   if (context.mounted) {

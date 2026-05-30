@@ -34,6 +34,25 @@ class GoalsScreen extends ConsumerWidget {
                   color: Colors.redAccent,
                   child: const Icon(Icons.delete, color: Colors.white),
                 ),
+                confirmDismiss: (direction) async {
+                  return await showDialog(
+                    context: context,
+                    builder: (BuildContext context) {
+                      return AlertDialog(
+                        title: const Text("Eliminar Meta"),
+                        content: const Text("¿Estás seguro de que quieres eliminar esta meta? Todo el progreso registrado desaparecerá."),
+                        actions: [
+                          TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text("Cancelar")),
+                          ElevatedButton(
+                            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                            onPressed: () => Navigator.of(context).pop(true), 
+                            child: const Text("Eliminar")
+                          ),
+                        ],
+                      );
+                    },
+                  );
+                },
                 onDismissed: (direction) async {
                   await (ref.read(databaseProvider).delete(ref.read(databaseProvider).goals)
                     ..where((g) => g.id.equals(goal.id)))

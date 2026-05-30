@@ -71,6 +71,25 @@ class TransactionsListScreen extends ConsumerWidget {
                   color: Colors.redAccent,
                   child: const Icon(Icons.delete, color: Colors.white),
                 ),
+                confirmDismiss: (direction) async {
+                  return await showDialog(
+                    context: context,
+                    builder: (BuildContext context) {
+                      return AlertDialog(
+                        title: const Text("Confirmar Eliminación"),
+                        content: const Text("¿Estás seguro que deseas eliminar esta transacción? Tu saldo será revertido."),
+                        actions: [
+                          TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text("Cancelar")),
+                          ElevatedButton(
+                            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                            onPressed: () => Navigator.of(context).pop(true), 
+                            child: const Text("Eliminar")
+                          ),
+                        ],
+                      );
+                    },
+                  );
+                },
                 onDismissed: (direction) async {
                   await ref.read(transactionsDaoProvider).deleteTransactionAndRevertBalance(tx);
                   if (context.mounted) {
@@ -96,7 +115,7 @@ class TransactionsListScreen extends ConsumerWidget {
                       style: TextStyle(
                         fontWeight: FontWeight.w900, 
                         fontSize: 16,
-                        color: isIncome ? Colors.green : Colors.white,
+                        color: isIncome ? Colors.green : Colors.redAccent,
                       ),
                     ),
                   ),

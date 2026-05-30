@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../transactions/presentation/widgets/quick_record_bottom_sheet.dart';
 import '../../../core/providers/database_provider.dart';
@@ -54,10 +55,30 @@ class DashboardScreen extends ConsumerWidget {
                     ],
                   ),
                   GestureDetector(
-                    onTap: () => context.push('/profile'),
-                    child: const CircleAvatar(
-                      radius: 24,
-                      backgroundImage: NetworkImage('https://i.pravatar.cc/150?img=11'),
+                    onTap: () => context.push('/profile').then((_) => ref.refresh(settingsDaoProvider)),
+                    child: Consumer(
+                      builder: (context, ref, child) {
+                        final avatarUrlAsync = ref.watch(_avatarUrlProvider);
+                        return Hero(
+                          tag: 'avatar_profile',
+                          child: CircleAvatar(
+                            radius: 24,
+                            backgroundColor: Colors.grey.withValues(alpha: 0.1),
+                            child: avatarUrlAsync.when(
+                              data: (url) => ClipOval(
+                                child: SvgPicture.network(
+                                  url, 
+                                  width: 48, 
+                                  height: 48,
+                                  placeholderBuilder: (context) => const CircularProgressIndicator(),
+                                ),
+                              ),
+                              loading: () => const CircularProgressIndicator(),
+                              error: (_, __) => const Icon(Icons.person),
+                            ),
+                          ),
+                        );
+                      }
                     ),
                   ),
                 ],
@@ -70,7 +91,7 @@ class DashboardScreen extends ConsumerWidget {
                   children: [
                     // Gráfico de líneas (Evolución)
                     Container(
-                      height: 200,
+                      height: 140,
                       padding: const EdgeInsets.symmetric(horizontal: 24),
                       child: transactionsAsync.when(
                         data: (txs) {
@@ -174,6 +195,12 @@ final totalBalanceProvider = StreamProvider<double>((ref) {
 
 final recentTransactionsProvider = StreamProvider<List<Transaction>>((ref) {
   return ref.watch(transactionsDaoProvider).watchRecentTransactions(limit: 10);
+});
+
+final _avatarUrlProvider = FutureProvider<String>((ref) async {
+  final dao = ref.watch(settingsDaoProvider);
+  final url = await dao.getSetting('profile_avatar_url');
+  return url ?? 'https://api.dicebear.com/7.x/avataaars/svg?seed=Felix';
 });
 
 class _ModuleGrid extends StatelessWidget {
