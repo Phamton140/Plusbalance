@@ -236,7 +236,7 @@ class _QuickRecordBottomSheetState extends ConsumerState<QuickRecordBottomSheet>
           final isKeyboardOpen = bottomInset > 0;
 
           return Padding(
-            padding: EdgeInsets.fromLTRB(16, 16, 16, 16 + bottomInset),
+            padding: EdgeInsets.only(bottom: bottomInset),
             child: Column(
               children: [
                 const SizedBox(height: 12),
