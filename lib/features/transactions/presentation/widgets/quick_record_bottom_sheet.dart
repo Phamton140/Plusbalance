@@ -23,7 +23,7 @@ class QuickRecordBottomSheet extends ConsumerStatefulWidget {
 }
 
 class _QuickRecordBottomSheetState extends ConsumerState<QuickRecordBottomSheet> {
-  String _amount = "0";
+  final TextEditingController _amountController = TextEditingController();
   String _type = 'expense';
   String? _selectedAccountId;
   String? _destinationAccountId;
@@ -41,6 +41,7 @@ class _QuickRecordBottomSheetState extends ConsumerState<QuickRecordBottomSheet>
 
   @override
   void dispose() {
+    _amountController.dispose();
     _thirdPartyController.dispose();
     _descController.dispose();
     super.dispose();
@@ -54,33 +55,10 @@ class _QuickRecordBottomSheetState extends ConsumerState<QuickRecordBottomSheet>
     }
   }
 
-  void _onKeyPress(String key) {
-    setState(() {
-      if (key == '⌫') {
-        if (_amount.length > 1) {
-          _amount = _amount.substring(0, _amount.length - 1);
-        } else {
-          _amount = "0";
-        }
-      } else if (key == '.') {
-        if (!_amount.contains('.')) {
-          _amount += '.';
-        }
-      } else {
-        if (_amount == "0") {
-          _amount = key;
-        } else if (_amount.replaceAll('.', '').length < 9) {
-          _amount += key;
-        }
-      }
-    });
-  }
-
   void _saveTransaction() async {
-    if (_amount == '0' || _selectedAccountId == null) return;
+    final amountDouble = double.tryParse(_amountController.text) ?? 0.0;
+    if (amountDouble <= 0 || _selectedAccountId == null) return;
     if (_type == 'transfer' && _destinationAccountId == null) return;
-
-    final amountDouble = double.parse(_amount);
     final transactionsDao = ref.read(transactionsDaoProvider);
 
     if (_type == 'transfer') {
@@ -190,31 +168,6 @@ class _QuickRecordBottomSheetState extends ConsumerState<QuickRecordBottomSheet>
     );
   }
 
-  Widget _buildKeyboard() {
-    final keys = [
-      ['1', '2', '3'],
-      ['4', '5', '6'],
-      ['7', '8', '9'],
-      ['.', '0', '⌫'],
-    ];
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 32),
-      child: Column(
-        children: keys.map((row) {
-          return Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: row.map((key) {
-              return _KeypadButton(
-                text: key,
-                onTap: () => _onKeyPress(key),
-              );
-            }).toList(),
-          );
-        }).toList(),
-      ),
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -234,7 +187,6 @@ class _QuickRecordBottomSheetState extends ConsumerState<QuickRecordBottomSheet>
           
           final isThirdPartyInvolved = _type == 'transfer' && (_selectedAccountId == _thirdPartyId || _destinationAccountId == _thirdPartyId);
           final bottomInset = MediaQuery.of(context).viewInsets.bottom;
-          final isKeyboardOpen = bottomInset > 0;
 
           return Padding(
             padding: EdgeInsets.only(bottom: bottomInset),
@@ -250,7 +202,16 @@ class _QuickRecordBottomSheetState extends ConsumerState<QuickRecordBottomSheet>
                   ],
                 ),
                 const SizedBox(height: 16),
-                Text(_amount, style: TextStyle(fontSize: 56, fontWeight: FontWeight.w900, letterSpacing: -2, color: colorScheme.onSurface)),
+                TextField(
+                  controller: _amountController,
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 56, fontWeight: FontWeight.w900, letterSpacing: -2, color: colorScheme.onSurface),
+                  decoration: const InputDecoration(
+                    hintText: "0.00",
+                    border: InputBorder.none,
+                  ),
+                ),
                 const SizedBox(height: 16),
                 SegmentedButton<String>(
                   segments: [
@@ -327,15 +288,11 @@ class _QuickRecordBottomSheetState extends ConsumerState<QuickRecordBottomSheet>
                   ),
                 ),
 
-                if (!isKeyboardOpen) ...[
-                  _buildKeyboard(),
-                  const SizedBox(height: 16),
-                ],
                 SizedBox(
                   width: double.infinity,
                   height: 56,
                   child: ElevatedButton(
-                    onPressed: (_amount != "0" && effectiveSelectedAccount != null && !(_selectedAccountId == _thirdPartyId && _destinationAccountId == _thirdPartyId)) ? () {
+                    onPressed: (effectiveSelectedAccount != null && !(_selectedAccountId == _thirdPartyId && _destinationAccountId == _thirdPartyId)) ? () {
                       _selectedAccountId = effectiveSelectedAccount;
                       _saveTransaction();
                     } : null,
@@ -353,54 +310,6 @@ class _QuickRecordBottomSheetState extends ConsumerState<QuickRecordBottomSheet>
         },
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, s) => Center(child: Text('Error: $e')),
-      ),
-    );
-  }
-}
-
-class _KeypadButton extends StatefulWidget {
-  final String text;
-  final VoidCallback onTap;
-
-  const _KeypadButton({required this.text, required this.onTap});
-
-  @override
-  State<_KeypadButton> createState() => _KeypadButtonState();
-}
-
-class _KeypadButtonState extends State<_KeypadButton> with SingleTickerProviderStateMixin {
-  bool _isPressed = false;
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    return GestureDetector(
-      onTapDown: (_) => setState(() => _isPressed = true),
-      onTapUp: (_) {
-        setState(() => _isPressed = false);
-        widget.onTap();
-      },
-      onTapCancel: () => setState(() => _isPressed = false),
-      child: AnimatedScale(
-        scale: _isPressed ? 0.9 : 1.0,
-        duration: const Duration(milliseconds: 100),
-        child: Container(
-          width: 80,
-          height: 80,
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: _isPressed ? colorScheme.onSurface.withValues(alpha: 0.1) : Colors.transparent,
-          ),
-          child: Text(
-            widget.text,
-            style: TextStyle(
-              fontSize: widget.text == '⌫' ? 24 : 32,
-              fontWeight: FontWeight.w600,
-              color: widget.text == '⌫' ? colorScheme.error : colorScheme.onSurface,
-            ),
-          ),
-        ),
       ),
     );
   }
