@@ -22,4 +22,8 @@ class GoalsDao extends DatabaseAccessor<AppDatabase> with _$GoalsDaoMixin {
       goal.copyWith(currentAmount: goal.currentAmount + addAmount)
     );
   }
+
+  Future<bool> updateGoal(Insertable<Goal> goal) {
+    return update(goals).replace(goal);
+  }
 }

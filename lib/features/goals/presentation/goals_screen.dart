@@ -112,7 +112,6 @@ class GoalsScreen extends ConsumerWidget {
       ),
     );
   }
-  }
 }
 
 final activeGoalsProvider = StreamProvider<List<Goal>>((ref) {

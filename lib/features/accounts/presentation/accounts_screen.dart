@@ -219,4 +219,3 @@ class _AccountCard extends ConsumerWidget {
     );
   }
 }
-}

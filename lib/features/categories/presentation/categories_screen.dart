@@ -76,7 +76,7 @@ class CategoriesScreen extends ConsumerWidget {
     );
   }
 
-
+  void _confirmDelete(BuildContext context, WidgetRef ref, Category cat) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
