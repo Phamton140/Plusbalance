@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
+import 'package:drift/drift.dart' as drift;
 import '../../../core/database/app_database.dart';
 import '../../../core/providers/database_provider.dart';
 
@@ -128,8 +129,8 @@ class CategoriesScreen extends ConsumerWidget {
                       await dao.createCategory(CategoriesCompanion.insert(
                         id: const Uuid().v4(),
                         name: nameController.text.trim(),
-                        color: selectedColor,
-                        icon: selectedIcon,
+                        color: drift.Value(selectedColor),
+                        icon: drift.Value(selectedIcon),
                       ));
                     } else {
                       await dao.updateCategory(existingCat.copyWith(
