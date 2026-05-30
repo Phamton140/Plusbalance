@@ -13,7 +13,15 @@ class ProfileScreen extends ConsumerStatefulWidget {
 
 class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   String _username = 'Usuario +Balance';
-  String _avatarUrl = 'https://api.dicebear.com/7.x/adventurer/png?seed=Felix&backgroundColor=c0aede';
+
+  String get _initials {
+    if (_username.isEmpty) return "?";
+    final parts = _username.split(" ").where((p) => p.isNotEmpty).toList();
+    if (parts.length >= 2) {
+      return "${parts[0][0]}${parts[1][0]}".toUpperCase();
+    }
+    return parts[0].substring(0, parts[0].length >= 2 ? 2 : 1).toUpperCase();
+  }
 
   @override
   void initState() {
@@ -24,11 +32,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   Future<void> _loadProfileData() async {
     final settingsDao = ref.read(settingsDaoProvider);
     final savedName = await settingsDao.getSetting('profile_username');
-    final savedAvatar = await settingsDao.getSetting('profile_avatar_url');
     if (mounted) {
       setState(() {
         if (savedName != null) _username = savedName;
-        if (savedAvatar != null) _avatarUrl = savedAvatar;
       });
     }
   }
@@ -72,8 +78,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   tag: 'avatar_profile',
                   child: CircleAvatar(
                     radius: 50,
-                    backgroundColor: Colors.grey.withValues(alpha: 0.1),
-                    backgroundImage: NetworkImage(_avatarUrl),
+                    backgroundColor: const Color(0xFF6C63FF),
+                    child: Text(
+                      _initials,
+                      style: const TextStyle(fontSize: 36, color: Colors.white, fontWeight: FontWeight.bold),
+                    ),
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -108,15 +117,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   },
                 ),
                 const Divider(height: 1),
-                ListTile(
-                  leading: const Icon(Icons.palette_outlined),
-                  title: const Text('Diseñar Avatar'),
-                  subtitle: const Text('Personaliza tu personaje de +Balance'),
-                  onTap: () => context.push('/avatar-builder').then((_) {
-                    _loadProfileData(); // Reload avatar when coming back
-                    ref.invalidate(settingsDaoProvider);
-                  }),
-                ),
                 const Divider(height: 1),
                 ListTile(
                   leading: const Icon(Icons.delete_forever, color: Colors.red),

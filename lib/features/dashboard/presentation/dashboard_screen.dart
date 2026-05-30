@@ -57,17 +57,29 @@ class DashboardScreen extends ConsumerWidget {
                     onTap: () => context.push('/profile').then((_) => ref.refresh(settingsDaoProvider)),
                     child: Consumer(
                       builder: (context, ref, child) {
-                        final avatarUrlAsync = ref.watch(_avatarUrlProvider);
+                        final usernameAsync = ref.watch(_usernameProvider);
                         return Hero(
                           tag: 'avatar_profile',
                           child: CircleAvatar(
                             radius: 24,
                             backgroundColor: Colors.grey.withValues(alpha: 0.1),
-                            child: avatarUrlAsync.when(
-                              data: (url) => CircleAvatar(
-                                radius: 24,
-                                backgroundImage: NetworkImage(url),
-                              ),
+                            child: usernameAsync.when(
+                              data: (name) {
+                                String initials = "?";
+                                if (name.isNotEmpty) {
+                                  final parts = name.split(" ").where((p) => p.isNotEmpty).toList();
+                                  if (parts.length >= 2) {
+                                    initials = "${parts[0][0]}${parts[1][0]}".toUpperCase();
+                                  } else {
+                                    initials = parts[0].substring(0, parts[0].length >= 2 ? 2 : 1).toUpperCase();
+                                  }
+                                }
+                                return CircleAvatar(
+                                  radius: 24,
+                                  backgroundColor: const Color(0xFF6C63FF),
+                                  child: Text(initials, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
+                                );
+                              },
                               loading: () => const CircularProgressIndicator(),
                               error: (e, s) => const Icon(Icons.person),
                             ),
@@ -234,10 +246,10 @@ final recentTransactionsProvider = StreamProvider<List<Transaction>>((ref) {
   return ref.watch(transactionsDaoProvider).watchRecentTransactions(limit: 10);
 });
 
-final _avatarUrlProvider = FutureProvider<String>((ref) async {
+final _usernameProvider = FutureProvider<String>((ref) async {
   final dao = ref.watch(settingsDaoProvider);
-  final url = await dao.getSetting('profile_avatar_url');
-  return url ?? 'https://api.dicebear.com/7.x/adventurer/png?seed=Felix&backgroundColor=c0aede';
+  final name = await dao.getSetting('profile_username');
+  return name ?? 'Usuario +Balance';
 });
 
 class _ModuleGrid extends StatelessWidget {
