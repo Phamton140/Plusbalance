@@ -232,14 +232,18 @@ class _QuickRecordBottomSheetState extends ConsumerState<QuickRecordBottomSheet>
           final effectiveSelectedAccount = _selectedAccountId ?? (accounts.isNotEmpty ? accounts.first.id : null);
           
           final isThirdPartyInvolved = _type == 'transfer' && (_selectedAccountId == _thirdPartyId || _destinationAccountId == _thirdPartyId);
+          final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+          final isKeyboardOpen = bottomInset > 0;
 
-          return Column(
+          final contentWidget = Padding(
+            padding: EdgeInsets.only(bottom: bottomInset),
+            child: Column(
             children: [
               const SizedBox(height: 12),
               Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey.withValues(alpha: 0.3), borderRadius: BorderRadius.circular(2))),
-              const Spacer(),
+              if (!isKeyboardOpen) const Spacer() else const SizedBox(height: 24),
               Text(_amount, style: TextStyle(fontSize: 56, fontWeight: FontWeight.w900, letterSpacing: -2, color: colorScheme.onSurface)),
-              const Spacer(),
+              if (!isKeyboardOpen) const Spacer() else const SizedBox(height: 24),
               SegmentedButton<String>(
                 segments: [
                   ButtonSegment(value: 'expense', label: Container(width: 70, alignment: Alignment.center, child: const Text('Gasto', style: TextStyle(fontSize: 12)))),
@@ -317,9 +321,11 @@ class _QuickRecordBottomSheetState extends ConsumerState<QuickRecordBottomSheet>
                 ),
               ],
 
-              const Spacer(),
-              _buildKeyboard(),
-              const SizedBox(height: 16),
+              if (!isKeyboardOpen) const Spacer() else const SizedBox(height: 24),
+              if (!isKeyboardOpen) ...[
+                _buildKeyboard(),
+                const SizedBox(height: 16),
+              ],
               SizedBox(
                 width: double.infinity,
                 height: 56,
@@ -337,7 +343,10 @@ class _QuickRecordBottomSheetState extends ConsumerState<QuickRecordBottomSheet>
               ),
               const SizedBox(height: 24),
             ],
-          );
+          ));
+          return isKeyboardOpen
+            ? SingleChildScrollView(child: contentWidget)
+            : contentWidget;
         },
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, s) => Center(child: Text('Error: $e')),
