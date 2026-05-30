@@ -109,7 +109,48 @@ class DashboardScreen extends ConsumerWidget {
                         error: (e, s) => const SizedBox(),
                       ),
                     ),
-                    const SizedBox(height: 32),
+                    const SizedBox(height: 16),
+                    // Upcoming Services Alerts
+                    Consumer(
+                      builder: (context, ref, child) {
+                        final upcomingAsync = ref.watch(upcomingServicesProvider);
+                        return upcomingAsync.when(
+                          data: (services) {
+                            if (services.isEmpty) return const SizedBox();
+                            return Column(
+                              children: services.map((s) {
+                                final days = s.nextDate.difference(DateTime.now()).inDays;
+                                final daysText = days == 0 ? '¡Hoy!' : 'en $days días';
+                                return Container(
+                                  margin: const EdgeInsets.only(bottom: 8, left: 24, right: 24),
+                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                  decoration: BoxDecoration(
+                                    color: Colors.orange.withValues(alpha: 0.1),
+                                    border: Border.all(color: Colors.orange.withValues(alpha: 0.5)),
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      const Icon(Icons.warning_amber_rounded, color: Colors.orange),
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: Text(
+                                          'Próximo pago: ${s.name} - \$${s.amount.toStringAsFixed(2)} $daysText',
+                                          style: const TextStyle(color: Colors.orange, fontWeight: FontWeight.bold, fontSize: 13),
+                                        ),
+                                      )
+                                    ],
+                                  ),
+                                ).animate().fadeIn().slideY(begin: -0.2);
+                              }).toList(),
+                            );
+                          },
+                          loading: () => const SizedBox(),
+                          error: (error, stack) => const SizedBox(),
+                        );
+                      }
+                    ),
+                    const SizedBox(height: 16),
                     const Padding(
                       padding: EdgeInsets.symmetric(horizontal: 24),
                       child: _ModuleGrid(),
@@ -250,6 +291,10 @@ final _usernameProvider = FutureProvider<String>((ref) async {
   final dao = ref.watch(settingsDaoProvider);
   final name = await dao.getSetting('profile_username');
   return name ?? 'Usuario +Balance';
+});
+
+final upcomingServicesProvider = StreamProvider<List<Service>>((ref) {
+  return ref.watch(servicesDaoProvider).watchUpcomingServices();
 });
 
 class _ModuleGrid extends StatelessWidget {

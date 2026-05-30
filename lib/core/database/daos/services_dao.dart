@@ -9,7 +9,19 @@ class ServicesDao extends DatabaseAccessor<AppDatabase> with _$ServicesDaoMixin 
   ServicesDao(super.db);
 
   Stream<List<Service>> watchActiveServices() {
-    return (select(services)..where((s) => s.isActive.equals(true))).watch();
+    return (select(services)..where((t) => t.isActive.equals(true))).watch();
+  }
+
+  Stream<List<Service>> watchUpcomingServices() {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final next3Days = today.add(const Duration(days: 3, hours: 23, minutes: 59, seconds: 59));
+    
+    return (select(services)
+      ..where((t) => t.isActive.equals(true))
+      ..where((t) => t.nextDate.isBetweenValues(today, next3Days))
+      ..orderBy([(t) => OrderingTerm(expression: t.nextDate, mode: OrderingMode.asc)])
+    ).watch();
   }
 
   Future<int> createService(Insertable<Service> service) {

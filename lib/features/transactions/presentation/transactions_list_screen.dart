@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:drift/drift.dart' as drift;
 import '../../../core/database/app_database.dart';
 import '../../../core/providers/database_provider.dart';
+import '../domain/services/pdf_service.dart';
 
 class TransactionFilterNotifier extends Notifier<String> {
   @override
@@ -23,12 +25,50 @@ class TransactionsListScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final filter = ref.watch(transactionFilterProvider);
-    final transactionsStream = ref.watch(filteredTransactionsProvider(filter));
+    final transactionsAsync = ref.watch(filteredTransactionsProvider(filter));
     final dateFormat = DateFormat('dd MMM yyyy, HH:mm');
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Historial de Transacciones'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.picture_as_pdf),
+            tooltip: 'Exportar Reporte',
+            onPressed: () async {
+              final DateTimeRange? pickedRange = await showDateRangePicker(
+                context: context,
+                firstDate: DateTime(2000),
+                lastDate: DateTime.now().add(const Duration(days: 365)),
+                helpText: 'Rango del Reporte (Deja vacío para TODO)',
+                cancelText: 'TODO EL HISTORIAL',
+                confirmText: 'GENERAR',
+              );
+
+              // Obtain data
+              final db = ref.read(databaseProvider);
+              List<Transaction> txs;
+              if (pickedRange != null) {
+                txs = await (db.select(db.transactions)
+                  ..where((t) => t.date.isBetweenValues(pickedRange.start, pickedRange.end))
+                  ..orderBy([(t) => drift.OrderingTerm(expression: t.date, mode: drift.OrderingMode.desc)])
+                ).get();
+              } else {
+                txs = await (db.select(db.transactions)
+                  ..orderBy([(t) => drift.OrderingTerm(expression: t.date, mode: drift.OrderingMode.desc)])
+                ).get();
+              }
+              final accounts = await db.select(db.accounts).get();
+
+              await PdfService.generateAndPrintTransactionsReport(
+                transactions: txs,
+                accounts: accounts,
+                startDate: pickedRange?.start,
+                endDate: pickedRange?.end,
+              );
+            },
+          )
+        ],
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(60),
           child: Padding(
@@ -45,7 +85,7 @@ class TransactionsListScreen extends ConsumerWidget {
           ),
         ),
       ),
-      body: transactionsStream.when(
+      body: transactionsAsync.when(
         data: (transactions) {
           if (transactions.isEmpty) {
             return const Center(
