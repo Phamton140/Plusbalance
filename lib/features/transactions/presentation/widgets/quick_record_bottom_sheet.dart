@@ -285,48 +285,35 @@ class _QuickRecordBottomSheetState extends ConsumerState<QuickRecordBottomSheet>
                         else
                           _buildAccountSelector(accounts, effectiveSelectedAccount, (val) => setState(() => _selectedAccountId = val), 'Cuenta'),
                         
-                        if (_type != 'transfer') ...[
-                          const SizedBox(height: 12),
-                          Row(
-                            crossAxisAlignment: CrossAxisAlignment.end,
-                            children: [
-                              Expanded(
-                                flex: 3,
-                                child: TextField(
-                                  controller: _descController,
-                                  decoration: const InputDecoration(labelText: 'Descripción (Opcional)', isDense: true, labelStyle: TextStyle(fontSize: 12)),
-                                  style: const TextStyle(fontSize: 12),
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                flex: 2,
-                                child: Consumer(
-                                  builder: (context, ref, child) {
-                                    final catsAsync = ref.watch(allCategoriesStreamProvider);
-                                    return catsAsync.when(
-                                      data: (cats) {
-                                        return DropdownButtonFormField<String>(
-                                          isExpanded: true,
-                                          value: _selectedCategoryId,
-                                          decoration: const InputDecoration(labelText: 'Categoría', isDense: true, labelStyle: TextStyle(fontSize: 12)),
-                                          items: [
-                                            const DropdownMenuItem(value: null, child: Text('Ninguna', style: TextStyle(fontSize: 12))),
-                                            ...cats.map((c) => DropdownMenuItem(value: c.id, child: Text(c.name, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 12, color: Color(int.parse(c.color.replaceAll('#', '0xFF'))))))),
-                                          ],
-                                          onChanged: (val) => setState(() => _selectedCategoryId = val),
-                                        );
-                                      },
-                                      loading: () => const SizedBox(height: 48, child: Center(child: CircularProgressIndicator())),
-                                      error: (_, __) => const SizedBox(),
-                                    );
-                                  }
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 16),
-                        ],
+                        const SizedBox(height: 12),
+                        TextField(
+                          controller: _descController,
+                          decoration: const InputDecoration(labelText: 'Descripción (Opcional)', isDense: true, labelStyle: TextStyle(fontSize: 12)),
+                          style: const TextStyle(fontSize: 12),
+                        ),
+                        const SizedBox(height: 12),
+                        Consumer(
+                          builder: (context, ref, child) {
+                            final catsAsync = ref.watch(allCategoriesStreamProvider);
+                            return catsAsync.when(
+                              data: (cats) {
+                                return DropdownButtonFormField<String>(
+                                  isExpanded: true,
+                                  value: _selectedCategoryId,
+                                  decoration: const InputDecoration(labelText: 'Categoría', isDense: true, labelStyle: TextStyle(fontSize: 12)),
+                                  items: [
+                                    const DropdownMenuItem(value: null, child: Text('Ninguna', style: TextStyle(fontSize: 12))),
+                                    ...cats.map((c) => DropdownMenuItem(value: c.id, child: Text(c.name, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 12, color: Color(int.parse(c.color.replaceAll('#', '0xFF'))))))),
+                                  ],
+                                  onChanged: (val) => setState(() => _selectedCategoryId = val),
+                                );
+                              },
+                              loading: () => const SizedBox(height: 48, child: Center(child: CircularProgressIndicator())),
+                              error: (_, __) => const SizedBox(),
+                            );
+                          }
+                        ),
+                        const SizedBox(height: 16),
                       ],
                     ),
                   ),
