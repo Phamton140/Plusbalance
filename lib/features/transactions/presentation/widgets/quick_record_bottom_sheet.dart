@@ -26,6 +26,8 @@ class _QuickRecordBottomSheetState extends ConsumerState<QuickRecordBottomSheet>
   String _type = 'expense';
   String? _selectedAccountId;
   String? _destinationAccountId;
+  String? _selectedCategoryId;
+  final TextEditingController _descController = TextEditingController();
   final TextEditingController _thirdPartyController = TextEditingController();
 
   final _thirdPartyId = 'THIRD_PARTY';
@@ -39,6 +41,7 @@ class _QuickRecordBottomSheetState extends ConsumerState<QuickRecordBottomSheet>
   @override
   void dispose() {
     _thirdPartyController.dispose();
+    _descController.dispose();
     super.dispose();
   }
 
@@ -148,19 +151,20 @@ class _QuickRecordBottomSheetState extends ConsumerState<QuickRecordBottomSheet>
         );
       }
     } else {
-      await transactionsDao.createTransaction(
-        TransactionsCompanion.insert(
-          id: const Uuid().v4(),
-          amount: amountDouble,
-          date: DateTime.now(),
-          type: _type,
-          accountId: _selectedAccountId!,
-          description: const drift.Value("Registro Rápido"),
-        ),
-        _selectedAccountId!,
-        amountDouble,
-        _type == 'income',
-      );
+        await transactionsDao.createTransaction(
+          TransactionsCompanion.insert(
+            id: const Uuid().v4(),
+            amount: amountDouble,
+            date: DateTime.now(),
+            type: _type,
+            accountId: _selectedAccountId!,
+            categoryId: drift.Value(_selectedCategoryId),
+            description: drift.Value(_descController.text.trim().isNotEmpty ? _descController.text.trim() : "Registro Rápido"),
+          ),
+          _selectedAccountId!,
+          amountDouble,
+          _type == 'income',
+        );
     }
 
     if (mounted) Navigator.pop(context);
@@ -271,6 +275,48 @@ class _QuickRecordBottomSheetState extends ConsumerState<QuickRecordBottomSheet>
                 )
               else
                 _buildAccountSelector(accounts, effectiveSelectedAccount, (val) => setState(() => _selectedAccountId = val), 'Cuenta'),
+              
+              if (_type != 'transfer') ...[
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      flex: 2,
+                      child: TextField(
+                        controller: _descController,
+                        decoration: const InputDecoration(labelText: 'Descripción (Opcional)', isDense: true, labelStyle: TextStyle(fontSize: 12)),
+                        style: const TextStyle(fontSize: 12),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      flex: 1,
+                      child: Consumer(
+                        builder: (context, ref, child) {
+                          final catsAsync = ref.watch(StreamProvider((ref) => ref.watch(categoriesDaoProvider).watchAllCategories()));
+                          return catsAsync.when(
+                            data: (cats) {
+                              return DropdownButtonFormField<String>(
+                                isExpanded: true,
+                                value: _selectedCategoryId,
+                                decoration: const InputDecoration(labelText: 'Categoría', isDense: true, labelStyle: TextStyle(fontSize: 12)),
+                                items: [
+                                  const DropdownMenuItem(value: null, child: Text('Ninguna', style: TextStyle(fontSize: 12))),
+                                  ...cats.map((c) => DropdownMenuItem(value: c.id, child: Text(c.name, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 12, color: Color(int.parse(c.color.replaceAll('#', '0xFF'))))))),
+                                ],
+                                onChanged: (val) => setState(() => _selectedCategoryId = val),
+                              );
+                            },
+                            loading: () => const SizedBox(),
+                            error: (_, __) => const SizedBox(),
+                          );
+                        }
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+
               const Spacer(),
               _buildKeyboard(),
               const SizedBox(height: 16),

@@ -96,17 +96,28 @@ class DashboardScreen extends ConsumerWidget {
               child: SingleChildScrollView(
                 child: Column(
                   children: [
-                    // Gráfico de líneas (Evolución)
+                    // Gráfico de Pastel (Distribución de Gastos)
                     Container(
-                      height: 140,
+                      height: 180,
                       padding: const EdgeInsets.symmetric(horizontal: 24),
-                      child: transactionsAsync.when(
-                        data: (txs) {
-                          if (txs.isEmpty) return const Center(child: Text('No hay datos para graficar', style: TextStyle(color: Colors.grey)));
-                          return _BalanceLineChart(transactions: txs);
-                        },
-                        loading: () => const Center(child: CircularProgressIndicator()),
-                        error: (e, s) => const SizedBox(),
+                      child: Consumer(
+                        builder: (context, ref, child) {
+                          final expensesAsync = ref.watch(expensesProvider);
+                          final catsAsync = ref.watch(allCategoriesProvider);
+                          
+                          if (expensesAsync.isLoading || catsAsync.isLoading) {
+                            return const Center(child: CircularProgressIndicator());
+                          }
+                          
+                          final expenses = expensesAsync.value ?? [];
+                          final categories = catsAsync.value ?? [];
+                          
+                          if (expenses.isEmpty) {
+                            return const Center(child: Text('No hay gastos para graficar', style: TextStyle(color: Colors.grey)));
+                          }
+                          
+                          return _ExpensePieChart(transactions: expenses, categories: categories);
+                        }
                       ),
                     ),
                     const SizedBox(height: 16),
@@ -182,100 +193,111 @@ class DashboardScreen extends ConsumerWidget {
   }
 }
 
-class _BalanceLineChart extends StatelessWidget {
+class _ExpensePieChart extends StatefulWidget {
   final List<Transaction> transactions;
+  final List<Category> categories;
 
-  const _BalanceLineChart({required this.transactions});
+  const _ExpensePieChart({required this.transactions, required this.categories});
+
+  @override
+  State<_ExpensePieChart> createState() => _ExpensePieChartState();
+}
+
+class _ExpensePieChartState extends State<_ExpensePieChart> {
+  int touchedIndex = -1;
 
   @override
   Widget build(BuildContext context) {
-    // Generar datos ficticios basados en transacciones recientes para el gráfico de líneas
-    // En producción, esto calcularía el saldo en el tiempo
-    final spots = <FlSpot>[];
-    double currentBal = 0;
+    // Agrupar por categoría
+    Map<String, double> sums = {};
+    double total = 0;
     
-    // Invertimos porque vienen de más reciente a más antiguo
-    final reversedTxs = transactions.reversed.toList();
-    for (int i = 0; i < reversedTxs.length; i++) {
-      final tx = reversedTxs[i];
-      if (tx.type == 'income') {
-        currentBal += tx.amount;
-      } else if (tx.type == 'expense') {
-        currentBal -= tx.amount;
-      }
-      spots.add(FlSpot(i.toDouble(), currentBal));
+    for (var tx in widget.transactions) {
+      final catId = tx.categoryId ?? 'other';
+      sums[catId] = (sums[catId] ?? 0) + tx.amount;
+      total += tx.amount;
     }
 
-    if (spots.isEmpty) {
-      spots.add(const FlSpot(0, 0));
-    }
-    if (spots.length == 1) {
-      spots.add(FlSpot(1, spots.first.y));
-    }
-
-    final maxY = currentBal > 0 ? currentBal * 1.5 : 1000.0;
+    final entries = sums.entries.toList()..sort((a, b) => b.value.compareTo(a.value));
     
-    return LineChart(
-      LineChartData(
-        gridData: FlGridData(
-          show: true,
-          drawVerticalLine: false,
-          horizontalInterval: maxY / 4,
-          getDrawingHorizontalLine: (value) => FlLine(color: Colors.grey.withValues(alpha: 0.2), strokeWidth: 1),
-        ),
-        titlesData: FlTitlesData(
-          show: true,
-          rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-          topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-          bottomTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-          leftTitles: AxisTitles(
-            sideTitles: SideTitles(
-              showTitles: true,
-              reservedSize: 40,
-              getTitlesWidget: (value, meta) {
-                if (value == 0) return const SizedBox();
-                return Text('\$${(value / 1000).toStringAsFixed(1)}k', style: const TextStyle(color: Colors.grey, fontSize: 10));
-              },
-            ),
-          ),
-        ),
-        borderData: FlBorderData(show: false),
-        lineTouchData: LineTouchData(
-          touchTooltipData: LineTouchTooltipData(
-            getTooltipColor: (spot) => Theme.of(context).colorScheme.primary,
-            getTooltipItems: (touchedSpots) {
-              return touchedSpots.map((spot) {
-                return LineTooltipItem(
-                  '\$${spot.y.toStringAsFixed(2)}',
-                  const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-                );
-              }).toList();
-            },
-          ),
-        ),
-        lineBarsData: [
-          LineChartBarData(
-            spots: spots,
-            isCurved: true,
-            color: Theme.of(context).colorScheme.primary,
-            barWidth: 4,
-            isStrokeCapRound: true,
-            dotData: const FlDotData(show: false),
-            belowBarData: BarAreaData(
-              show: true,
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  Theme.of(context).colorScheme.primary.withValues(alpha: 0.3),
-                  Theme.of(context).colorScheme.primary.withValues(alpha: 0.0),
-                ],
+    if (total == 0) return const SizedBox();
+
+    return Row(
+      children: [
+        Expanded(
+          flex: 4,
+          child: PieChart(
+            PieChartData(
+              pieTouchData: PieTouchData(
+                touchCallback: (FlTouchEvent event, pieTouchResponse) {
+                  setState(() {
+                    if (!event.isInterestedForInteractions || pieTouchResponse == null || pieTouchResponse.touchedSection == null) {
+                      touchedIndex = -1;
+                      return;
+                    }
+                    touchedIndex = pieTouchResponse.touchedSection!.touchedSectionIndex;
+                  });
+                },
               ),
+              borderData: FlBorderData(show: false),
+              sectionsSpace: 2,
+              centerSpaceRadius: 30,
+              sections: List.generate(entries.length, (i) {
+                final isTouched = i == touchedIndex;
+                final fontSize = isTouched ? 16.0 : 0.0;
+                final radius = isTouched ? 60.0 : 50.0;
+                final e = entries[i];
+                final percentage = (e.value / total) * 100;
+
+                Color color = Colors.grey;
+                if (e.key != 'other') {
+                  final cat = widget.categories.where((c) => c.id == e.key).firstOrNull;
+                  if (cat != null) {
+                    color = Color(int.parse(cat.color.replaceAll('#', '0xFF')));
+                  }
+                }
+
+                return PieChartSectionData(
+                  color: color,
+                  value: e.value,
+                  title: isTouched ? '${percentage.toStringAsFixed(1)}%' : '',
+                  radius: radius,
+                  titleStyle: TextStyle(fontSize: fontSize, fontWeight: FontWeight.bold, color: Colors.white),
+                );
+              }),
             ),
+          ).animate().scale(duration: 500.ms, curve: Curves.easeOutBack),
+        ),
+        Expanded(
+          flex: 3,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: entries.take(4).map((e) {
+              String name = 'Otros';
+              Color color = Colors.grey;
+              if (e.key != 'other') {
+                final cat = widget.categories.where((c) => c.id == e.key).firstOrNull;
+                if (cat != null) {
+                  name = cat.name;
+                  color = Color(int.parse(cat.color.replaceAll('#', '0xFF')));
+                }
+              }
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 6),
+                child: Row(
+                  children: [
+                    Container(width: 12, height: 12, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
+                    const SizedBox(width: 8),
+                    Expanded(child: Text(name, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500))),
+                  ],
+                ),
+              );
+            }).toList(),
           ),
-        ],
-      ),
-    ).animate().fadeIn(duration: 800.ms);
+        ),
+      ],
+    );
   }
 }
 
@@ -285,6 +307,15 @@ final totalBalanceProvider = StreamProvider<double>((ref) {
 
 final recentTransactionsProvider = StreamProvider<List<Transaction>>((ref) {
   return ref.watch(transactionsDaoProvider).watchRecentTransactions(limit: 10);
+});
+
+final expensesProvider = StreamProvider<List<Transaction>>((ref) {
+  final db = ref.watch(databaseProvider);
+  return (db.select(db.transactions)..where((t) => t.type.equals('expense'))).watch();
+});
+
+final allCategoriesProvider = StreamProvider<List<Category>>((ref) {
+  return ref.watch(categoriesDaoProvider).watchAllCategories();
 });
 
 final _usernameProvider = FutureProvider<String>((ref) async {

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../features/dashboard/presentation/dashboard_screen.dart';
 import '../../features/accounts/presentation/accounts_screen.dart';
 import '../../features/profile/presentation/profile_screen.dart';
+import '../../features/categories/presentation/categories_screen.dart';
 import '../../features/services/presentation/services_screen.dart';
 import '../../features/transactions/presentation/transactions_list_screen.dart';
 import '../../features/goals/presentation/goals_screen.dart';
@@ -26,6 +27,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/profile',
         builder: (context, state) => const ProfileScreen(),
+      ),
+      GoRoute(
+        path: '/categories',
+        builder: (context, state) => const CategoriesScreen(),
       ),
       GoRoute(
         path: '/transactions',

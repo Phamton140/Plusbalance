@@ -36,6 +36,7 @@ final automationEngineProvider = FutureProvider<void>((ref) async {
           type: service.type,
           accountId: accountId,
           serviceId: drift.Value(service.id),
+          categoryId: drift.Value(service.categoryId),
           description: drift.Value('Autogenerado: ${service.name}'),
           isRecurring: const drift.Value(true),
         ),

@@ -117,6 +117,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   },
                 ),
                 const Divider(height: 1),
+                ListTile(
+                  leading: const Icon(Icons.category_outlined),
+                  title: const Text('Administrar Categorías'),
+                  subtitle: const Text('Crea y edita tus categorías de gastos'),
+                  onTap: () => context.push('/categories'),
+                ),
                 const Divider(height: 1),
                 ListTile(
                   leading: const Icon(Icons.delete_forever, color: Colors.red),

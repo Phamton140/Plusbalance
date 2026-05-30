@@ -10,6 +10,7 @@ import 'tables.dart';
 part 'app_database.g.dart';
 
 @DriftDatabase(tables: [
+  Categories,
   Accounts,
   Services,
   Transactions,
@@ -23,7 +24,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
 
   @override
   MigrationStrategy get migration {
@@ -32,7 +33,11 @@ class AppDatabase extends _$AppDatabase {
         await m.createAll();
       },
       onUpgrade: (Migrator m, int from, int to) async {
-        // Migration logic for future phases
+        if (from < 2) {
+          await m.createTable(categories);
+          await m.addColumn(services, services.categoryId);
+          await m.addColumn(transactions, transactions.categoryId);
+        }
       },
       beforeOpen: (details) async {
         // Enforce foreign keys

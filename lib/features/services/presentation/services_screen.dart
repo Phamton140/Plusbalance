@@ -135,6 +135,7 @@ class ServicesScreen extends ConsumerWidget {
     String selectedLabel = 'need';
     bool autoPay = true;
     DateTime? selectedDate;
+    String? selectedCategoryId;
 
     showDialog(
       context: context,
@@ -190,6 +191,28 @@ class ServicesScreen extends ConsumerWidget {
                       ],
                       onChanged: (val) => setState(() => selectedFrequency = val!),
                     ),
+                    const SizedBox(height: 12),
+                    Consumer(
+                      builder: (context, ref, child) {
+                        final catsAsync = ref.watch(StreamProvider((ref) => ref.watch(categoriesDaoProvider).watchAllCategories()));
+                        return catsAsync.when(
+                          data: (cats) {
+                            return DropdownButtonFormField<String>(
+                              isExpanded: true,
+                              value: selectedCategoryId,
+                              decoration: const InputDecoration(labelText: 'Categoría (Opcional)'),
+                              items: [
+                                const DropdownMenuItem(value: null, child: Text('Ninguna')),
+                                ...cats.map((c) => DropdownMenuItem(value: c.id, child: Text(c.name, overflow: TextOverflow.ellipsis))),
+                              ],
+                              onChanged: (val) => setState(() => selectedCategoryId = val),
+                            );
+                          },
+                          loading: () => const SizedBox(),
+                          error: (_, __) => const SizedBox(),
+                        );
+                      }
+                    ),
                     const SizedBox(height: 16),
                     ListTile(
                       contentPadding: EdgeInsets.zero,
@@ -239,6 +262,7 @@ class ServicesScreen extends ConsumerWidget {
                           label: drift.Value(selectedLabel),
                           frequency: selectedFrequency,
                           nextDate: selectedDate!,
+                          categoryId: drift.Value(selectedCategoryId),
                           autoGenerateTransaction: drift.Value(autoPay),
                         )
                       );

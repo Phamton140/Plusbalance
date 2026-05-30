@@ -1,10 +1,11 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../database/app_database.dart';
 import '../database/daos/transactions_dao.dart';
-import '../database/daos/accounts_dao.dart';
+import '../database/daos/settings_dao.dart';
+import '../database/daos/categories_dao.dart';
 import '../database/daos/services_dao.dart';
 import '../database/daos/goals_dao.dart';
-import '../database/daos/settings_dao.dart';
+import '../database/daos/accounts_dao.dart';
 
 /// Proveedor global de la base de datos (Singleton)
 final databaseProvider = Provider<AppDatabase>((ref) {
@@ -35,6 +36,10 @@ final goalsDaoProvider = Provider<GoalsDao>((ref) {
 
 final settingsDaoProvider = Provider<SettingsDao>((ref) {
   return SettingsDao(ref.watch(databaseProvider));
+});
+
+final categoriesDaoProvider = Provider<CategoriesDao>((ref) {
+  return CategoriesDao(ref.watch(databaseProvider));
 });
 
 final activeAccountsProvider = StreamProvider<List<Account>>((ref) {

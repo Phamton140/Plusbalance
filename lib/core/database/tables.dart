@@ -24,6 +24,16 @@ class Accounts extends Table with AuditMixin {
   Set<Column> get primaryKey => {id};
 }
 
+class Categories extends Table with AuditMixin {
+  TextColumn get id => text()();
+  TextColumn get name => text()();
+  TextColumn get color => text().withDefault(const Constant('#6C63FF'))();
+  TextColumn get icon => text().withDefault(const Constant('57680'))(); // category icon
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
 class Services extends Table with AuditMixin {
   TextColumn get id => text()();
   TextColumn get name => text()();
@@ -33,6 +43,7 @@ class Services extends Table with AuditMixin {
   TextColumn get frequency => text()(); // once, weekly, monthly, yearly
   DateTimeColumn get nextDate => dateTime()();
   TextColumn get accountId => text().nullable().references(Accounts, #id)();
+  TextColumn get categoryId => text().nullable().references(Categories, #id)();
   IntColumn get reminderDaysBefore => integer().withDefault(const Constant(3))();
   BoolColumn get autoGenerateTransaction => boolean().withDefault(const Constant(false))();
   BoolColumn get isActive => boolean().withDefault(const Constant(true))();
@@ -55,6 +66,7 @@ class Transactions extends Table with AuditMixin {
   TextColumn get type => text()(); // income, expense, transfer
   TextColumn get accountId => text().references(Accounts, #id)();
   TextColumn get serviceId => text().nullable().references(Services, #id)();
+  TextColumn get categoryId => text().nullable().references(Categories, #id)();
   TextColumn get transactionNumber => text().nullable()();
   TextColumn get notes => text().nullable()();
   TextColumn get location => text().nullable()();
