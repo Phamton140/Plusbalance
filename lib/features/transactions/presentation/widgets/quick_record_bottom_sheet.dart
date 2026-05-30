@@ -1,0 +1,279 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:uuid/uuid.dart';
+import 'package:drift/drift.dart' as drift;
+import '../../../../core/providers/database_provider.dart';
+import '../../../../core/database/app_database.dart';
+
+class QuickRecordBottomSheet extends ConsumerStatefulWidget {
+  const QuickRecordBottomSheet({super.key});
+
+  static Future<void> show(BuildContext context) {
+    return showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => const QuickRecordBottomSheet(),
+    );
+  }
+
+  @override
+  ConsumerState<QuickRecordBottomSheet> createState() => _QuickRecordBottomSheetState();
+}
+
+class _QuickRecordBottomSheetState extends ConsumerState<QuickRecordBottomSheet> {
+  String _amount = "0";
+  String _type = 'expense';
+  String? _selectedAccountId;
+  String? _destinationAccountId;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadDefaultAccount();
+  }
+
+  Future<void> _loadDefaultAccount() async {
+    final settingsDao = ref.read(settingsDaoProvider);
+    final defaultId = await settingsDao.getSetting('default_account_id');
+    if (defaultId != null && mounted) {
+      setState(() => _selectedAccountId = defaultId);
+    }
+  }
+
+  void _onKeyPress(String key) {
+    setState(() {
+      if (key == '⌫') {
+        if (_amount.length > 1) {
+          _amount = _amount.substring(0, _amount.length - 1);
+        } else {
+          _amount = "0";
+        }
+      } else if (key == '.') {
+        if (!_amount.contains('.')) {
+          _amount += '.';
+        }
+      } else {
+        if (_amount == "0") {
+          _amount = key;
+        } else if (_amount.replaceAll('.', '').length < 9) {
+          _amount += key;
+        }
+      }
+    });
+  }
+
+  void _saveTransaction() async {
+    if (_amount == '0' || _selectedAccountId == null) return;
+    if (_type == 'transfer' && _destinationAccountId == null) return;
+
+    final amountDouble = double.parse(_amount);
+    final transactionsDao = ref.read(transactionsDaoProvider);
+
+    if (_type == 'transfer') {
+      await transactionsDao.createTransaction(
+        TransactionsCompanion.insert(
+          id: const Uuid().v4(),
+          amount: amountDouble,
+          date: DateTime.now(),
+          type: 'transfer',
+          accountId: _selectedAccountId!,
+          description: const drift.Value('Transferencia enviada'),
+        ),
+        _selectedAccountId!,
+        amountDouble,
+        false,
+      );
+      await transactionsDao.createTransaction(
+        TransactionsCompanion.insert(
+          id: const Uuid().v4(),
+          amount: amountDouble,
+          date: DateTime.now(),
+          type: 'transfer',
+          accountId: _destinationAccountId!,
+          description: const drift.Value('Transferencia recibida'),
+        ),
+        _destinationAccountId!,
+        amountDouble,
+        true,
+      );
+    } else {
+      await transactionsDao.createTransaction(
+        TransactionsCompanion.insert(
+          id: const Uuid().v4(),
+          amount: amountDouble,
+          date: DateTime.now(),
+          type: _type,
+          accountId: _selectedAccountId!,
+          description: const drift.Value("Registro Rápido"),
+        ),
+        _selectedAccountId!,
+        amountDouble,
+        _type == 'income',
+      );
+    }
+
+    if (mounted) Navigator.pop(context);
+  }
+
+  Widget _buildAccountSelector(List<Account> accounts, String? selectedId, Function(String?) onChanged, String label) {
+    return DropdownButtonFormField<String>(
+      isExpanded: true,
+      value: selectedId,
+      decoration: InputDecoration(labelText: label, labelStyle: const TextStyle(fontSize: 12)),
+      items: accounts.map((a) => DropdownMenuItem(value: a.id, child: Text(a.name, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12)))).toList(),
+      onChanged: onChanged,
+    );
+  }
+
+  Widget _buildKeyboard() {
+    final keys = [
+      ['1', '2', '3'],
+      ['4', '5', '6'],
+      ['7', '8', '9'],
+      ['.', '0', '⌫'],
+    ];
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 32),
+      child: Column(
+        children: keys.map((row) {
+          return Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: row.map((key) {
+              return _KeypadButton(
+                text: key,
+                onTap: () => _onKeyPress(key),
+              );
+            }).toList(),
+          );
+        }).toList(),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final accountsAsync = ref.watch(activeAccountsProvider);
+
+    return Container(
+      height: MediaQuery.of(context).size.height * 0.85,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: colorScheme.surface,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+      ),
+      child: accountsAsync.when(
+        data: (accounts) {
+          if (_selectedAccountId == null && accounts.isNotEmpty) {
+            // No default account selected, default to the first one available in the list
+            // However, since state mutation shouldn't happen inside `build`, we use a microtask
+            // or just use the local var. We'll avoid setState here.
+          }
+          final effectiveSelectedAccount = _selectedAccountId ?? (accounts.isNotEmpty ? accounts.first.id : null);
+          
+          return Column(
+            children: [
+              const SizedBox(height: 12),
+              Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey.withValues(alpha: 0.3), borderRadius: BorderRadius.circular(2))),
+              const Spacer(),
+              Text(_amount, style: TextStyle(fontSize: 56, fontWeight: FontWeight.w900, letterSpacing: -2, color: colorScheme.onSurface)),
+              const Spacer(),
+              SegmentedButton<String>(
+                segments: const [
+                  ButtonSegment(value: 'expense', label: Text('Gasto', style: TextStyle(fontSize: 12))),
+                  ButtonSegment(value: 'income', label: Text('Ingreso', style: TextStyle(fontSize: 12))),
+                  ButtonSegment(value: 'transfer', label: Text('Transferir', style: TextStyle(fontSize: 12))),
+                ],
+                selected: {_type},
+                onSelectionChanged: (set) => setState(() => _type = set.first),
+              ),
+              const SizedBox(height: 16),
+              if (_type == 'transfer')
+                Row(children: [
+                  Expanded(child: _buildAccountSelector(accounts, effectiveSelectedAccount, (val) => setState(() => _selectedAccountId = val), 'Origen')),
+                  const SizedBox(width: 8),
+                  Icon(Icons.arrow_forward, color: colorScheme.onSurface),
+                  const SizedBox(width: 8),
+                  Expanded(child: _buildAccountSelector(accounts, _destinationAccountId, (val) => setState(() => _destinationAccountId = val), 'Destino')),
+                ])
+              else
+                _buildAccountSelector(accounts, effectiveSelectedAccount, (val) => setState(() => _selectedAccountId = val), 'Cuenta'),
+              const Spacer(),
+              _buildKeyboard(),
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                height: 56,
+                child: ElevatedButton(
+                  onPressed: (_amount != "0" && effectiveSelectedAccount != null) ? () {
+                    // Update the state so the save function has the correct selected account
+                    _selectedAccountId = effectiveSelectedAccount;
+                    _saveTransaction();
+                  } : null,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: colorScheme.primary,
+                    foregroundColor: colorScheme.onPrimary,
+                  ),
+                  child: const Text("Guardar"),
+                ),
+              ),
+              const SizedBox(height: 24),
+            ],
+          );
+        },
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (e, s) => Center(child: Text('Error: $e')),
+      ),
+    );
+  }
+}
+
+class _KeypadButton extends StatefulWidget {
+  final String text;
+  final VoidCallback onTap;
+
+  const _KeypadButton({required this.text, required this.onTap});
+
+  @override
+  State<_KeypadButton> createState() => _KeypadButtonState();
+}
+
+class _KeypadButtonState extends State<_KeypadButton> with SingleTickerProviderStateMixin {
+  bool _isPressed = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return GestureDetector(
+      onTapDown: (_) => setState(() => _isPressed = true),
+      onTapUp: (_) {
+        setState(() => _isPressed = false);
+        widget.onTap();
+      },
+      onTapCancel: () => setState(() => _isPressed = false),
+      child: AnimatedScale(
+        scale: _isPressed ? 0.9 : 1.0,
+        duration: const Duration(milliseconds: 100),
+        child: Container(
+          width: 80,
+          height: 80,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: _isPressed ? colorScheme.onSurface.withValues(alpha: 0.1) : Colors.transparent,
+          ),
+          child: Text(
+            widget.text,
+            style: TextStyle(
+              fontSize: widget.text == '⌫' ? 24 : 32,
+              fontWeight: FontWeight.w600,
+              color: widget.text == '⌫' ? colorScheme.error : colorScheme.onSurface,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
