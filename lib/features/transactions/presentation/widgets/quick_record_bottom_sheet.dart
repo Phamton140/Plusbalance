@@ -235,118 +235,126 @@ class _QuickRecordBottomSheetState extends ConsumerState<QuickRecordBottomSheet>
           final bottomInset = MediaQuery.of(context).viewInsets.bottom;
           final isKeyboardOpen = bottomInset > 0;
 
-          final contentWidget = Padding(
-            padding: EdgeInsets.only(bottom: bottomInset),
+          return Padding(
+            padding: EdgeInsets.fromLTRB(16, 16, 16, 16 + bottomInset),
             child: Column(
-            children: [
-              const SizedBox(height: 12),
-              Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey.withValues(alpha: 0.3), borderRadius: BorderRadius.circular(2))),
-              if (!isKeyboardOpen) const Spacer() else const SizedBox(height: 24),
-              Text(_amount, style: TextStyle(fontSize: 56, fontWeight: FontWeight.w900, letterSpacing: -2, color: colorScheme.onSurface)),
-              if (!isKeyboardOpen) const Spacer() else const SizedBox(height: 24),
-              SegmentedButton<String>(
-                segments: [
-                  ButtonSegment(value: 'expense', label: Container(width: 70, alignment: Alignment.center, child: const Text('Gasto', style: TextStyle(fontSize: 12)))),
-                  ButtonSegment(value: 'income', label: Container(width: 70, alignment: Alignment.center, child: const Text('Ingreso', style: TextStyle(fontSize: 12)))),
-                  ButtonSegment(value: 'transfer', label: Container(width: 70, alignment: Alignment.center, child: const Text('Transferir', style: TextStyle(fontSize: 12)))),
-                ],
-                selected: {_type},
-                onSelectionChanged: (set) => setState(() => _type = set.first),
-              ),
-              const SizedBox(height: 16),
-              if (_type == 'transfer')
-                Column(
-                  children: [
-                    Row(children: [
-                      Expanded(child: _buildAccountSelector(accounts, effectiveSelectedAccount, (val) => setState(() => _selectedAccountId = val), 'Origen', allowThirdParty: true)),
-                      const SizedBox(width: 8),
-                      Icon(Icons.arrow_forward, color: colorScheme.onSurface),
-                      const SizedBox(width: 8),
-                      Expanded(child: _buildAccountSelector(accounts, _destinationAccountId, (val) => setState(() => _destinationAccountId = val), 'Destino', allowThirdParty: true)),
-                    ]),
-                    if (isThirdPartyInvolved) ...[
-                      const SizedBox(height: 12),
-                      TextField(
-                        controller: _thirdPartyController,
-                        decoration: const InputDecoration(
-                          labelText: 'Descripción / Motivo del Tercero',
-                          hintText: 'Ej. Juan Perez',
-                          isDense: true,
-                        ),
-                      ),
-                    ]
-                  ],
-                )
-              else
-                _buildAccountSelector(accounts, effectiveSelectedAccount, (val) => setState(() => _selectedAccountId = val), 'Cuenta'),
-              
-              if (_type != 'transfer') ...[
+              children: [
                 const SizedBox(height: 12),
-                Row(
-                  children: [
-                    Expanded(
-                      flex: 2,
-                      child: TextField(
-                        controller: _descController,
-                        decoration: const InputDecoration(labelText: 'Descripción (Opcional)', isDense: true, labelStyle: TextStyle(fontSize: 12)),
-                        style: const TextStyle(fontSize: 12),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      flex: 1,
-                      child: Consumer(
-                        builder: (context, ref, child) {
-                          final catsAsync = ref.watch(StreamProvider((ref) => ref.watch(categoriesDaoProvider).watchAllCategories()));
-                          return catsAsync.when(
-                            data: (cats) {
-                              return DropdownButtonFormField<String>(
-                                isExpanded: true,
-                                value: _selectedCategoryId,
-                                decoration: const InputDecoration(labelText: 'Categoría', isDense: true, labelStyle: TextStyle(fontSize: 12)),
-                                items: [
-                                  const DropdownMenuItem(value: null, child: Text('Ninguna', style: TextStyle(fontSize: 12))),
-                                  ...cats.map((c) => DropdownMenuItem(value: c.id, child: Text(c.name, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 12, color: Color(int.parse(c.color.replaceAll('#', '0xFF'))))))),
-                                ],
-                                onChanged: (val) => setState(() => _selectedCategoryId = val),
-                              );
-                            },
-                            loading: () => const SizedBox(),
-                            error: (_, __) => const SizedBox(),
-                          );
-                        }
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-
-              if (!isKeyboardOpen) const Spacer() else const SizedBox(height: 24),
-              if (!isKeyboardOpen) ...[
-                _buildKeyboard(),
+                Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey.withValues(alpha: 0.3), borderRadius: BorderRadius.circular(2))),
                 const SizedBox(height: 16),
-              ],
-              SizedBox(
-                width: double.infinity,
-                height: 56,
-                child: ElevatedButton(
-                  onPressed: (_amount != "0" && effectiveSelectedAccount != null && !(_selectedAccountId == _thirdPartyId && _destinationAccountId == _thirdPartyId)) ? () {
-                    _selectedAccountId = effectiveSelectedAccount;
-                    _saveTransaction();
-                  } : null,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: colorScheme.primary,
-                    foregroundColor: colorScheme.onPrimary,
-                  ),
-                  child: const Text("Guardar"),
+                Text(_amount, style: TextStyle(fontSize: 56, fontWeight: FontWeight.w900, letterSpacing: -2, color: colorScheme.onSurface)),
+                const SizedBox(height: 16),
+                SegmentedButton<String>(
+                  segments: [
+                    ButtonSegment(value: 'expense', label: Container(width: 70, alignment: Alignment.center, child: const Text('Gasto', style: TextStyle(fontSize: 12)))),
+                    ButtonSegment(value: 'income', label: Container(width: 70, alignment: Alignment.center, child: const Text('Ingreso', style: TextStyle(fontSize: 12)))),
+                    ButtonSegment(value: 'transfer', label: Container(width: 70, alignment: Alignment.center, child: const Text('Transferir', style: TextStyle(fontSize: 12)))),
+                  ],
+                  selected: {_type},
+                  onSelectionChanged: (set) => setState(() => _type = set.first),
                 ),
-              ),
-              const SizedBox(height: 24),
-            ],
-          ));
-          return isKeyboardOpen
-            ? SingleChildScrollView(child: contentWidget)
-            : contentWidget;
+                const SizedBox(height: 16),
+                
+                Expanded(
+                  child: SingleChildScrollView(
+                    child: Column(
+                      children: [
+                        if (_type == 'transfer')
+                          Column(
+                            children: [
+                              Row(children: [
+                                Expanded(child: _buildAccountSelector(accounts, effectiveSelectedAccount, (val) => setState(() => _selectedAccountId = val), 'Origen', allowThirdParty: true)),
+                                const SizedBox(width: 8),
+                                Icon(Icons.arrow_forward, color: colorScheme.onSurface),
+                                const SizedBox(width: 8),
+                                Expanded(child: _buildAccountSelector(accounts, _destinationAccountId, (val) => setState(() => _destinationAccountId = val), 'Destino', allowThirdParty: true)),
+                              ]),
+                              if (isThirdPartyInvolved) ...[
+                                const SizedBox(height: 12),
+                                TextField(
+                                  controller: _thirdPartyController,
+                                  decoration: const InputDecoration(
+                                    labelText: 'Descripción / Motivo del Tercero',
+                                    hintText: 'Ej. Juan Perez',
+                                    isDense: true,
+                                  ),
+                                ),
+                              ]
+                            ],
+                          )
+                        else
+                          _buildAccountSelector(accounts, effectiveSelectedAccount, (val) => setState(() => _selectedAccountId = val), 'Cuenta'),
+                        
+                        if (_type != 'transfer') ...[
+                          const SizedBox(height: 12),
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              Expanded(
+                                flex: 3,
+                                child: TextField(
+                                  controller: _descController,
+                                  decoration: const InputDecoration(labelText: 'Descripción (Opcional)', isDense: true, labelStyle: TextStyle(fontSize: 12)),
+                                  style: const TextStyle(fontSize: 12),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                flex: 2,
+                                child: Consumer(
+                                  builder: (context, ref, child) {
+                                    final catsAsync = ref.watch(allCategoriesStreamProvider);
+                                    return catsAsync.when(
+                                      data: (cats) {
+                                        return DropdownButtonFormField<String>(
+                                          isExpanded: true,
+                                          value: _selectedCategoryId,
+                                          decoration: const InputDecoration(labelText: 'Categoría', isDense: true, labelStyle: TextStyle(fontSize: 12)),
+                                          items: [
+                                            const DropdownMenuItem(value: null, child: Text('Ninguna', style: TextStyle(fontSize: 12))),
+                                            ...cats.map((c) => DropdownMenuItem(value: c.id, child: Text(c.name, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 12, color: Color(int.parse(c.color.replaceAll('#', '0xFF'))))))),
+                                          ],
+                                          onChanged: (val) => setState(() => _selectedCategoryId = val),
+                                        );
+                                      },
+                                      loading: () => const SizedBox(height: 48, child: Center(child: CircularProgressIndicator())),
+                                      error: (_, __) => const SizedBox(),
+                                    );
+                                  }
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 16),
+                        ],
+                      ],
+                    ),
+                  ),
+                ),
+
+                if (!isKeyboardOpen) ...[
+                  _buildKeyboard(),
+                  const SizedBox(height: 16),
+                ],
+                SizedBox(
+                  width: double.infinity,
+                  height: 56,
+                  child: ElevatedButton(
+                    onPressed: (_amount != "0" && effectiveSelectedAccount != null && !(_selectedAccountId == _thirdPartyId && _destinationAccountId == _thirdPartyId)) ? () {
+                      _selectedAccountId = effectiveSelectedAccount;
+                      _saveTransaction();
+                    } : null,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: colorScheme.primary,
+                      foregroundColor: colorScheme.onPrimary,
+                    ),
+                    child: const Text("Guardar"),
+                  ),
+                ),
+                const SizedBox(height: 8),
+              ],
+            ),
+          );
         },
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, s) => Center(child: Text('Error: $e')),

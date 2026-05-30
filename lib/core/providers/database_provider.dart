@@ -45,3 +45,7 @@ final categoriesDaoProvider = Provider<CategoriesDao>((ref) {
 final activeAccountsProvider = StreamProvider<List<Account>>((ref) {
   return ref.watch(accountsDaoProvider).watchActiveAccounts();
 });
+
+final allCategoriesStreamProvider = StreamProvider<List<Category>>((ref) {
+  return ref.watch(categoriesDaoProvider).watchAllCategories();
+});
