@@ -69,6 +69,48 @@ class ServicesScreen extends ConsumerWidget {
                     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Servicio eliminado')));
                   }
                 },
+                child: Card(
+                  margin: const EdgeInsets.only(bottom: 12),
+                  child: ListTile(
+                    leading: CircleAvatar(
+                      backgroundColor: Color(int.parse(service.color.replaceAll('#', '0xFF'))),
+                      child: Icon(IconData(int.parse(service.icon), fontFamily: 'MaterialIcons'), color: Colors.white),
+                    ),
+                    title: Text(service.name, style: const TextStyle(fontWeight: FontWeight.bold)),
+                    subtitle: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('${service.frequency.toUpperCase()} - Próximo cobro: ${service.nextDate.day}/${service.nextDate.month}/${service.nextDate.year}', style: const TextStyle(fontSize: 10, color: Colors.grey)),
+                        if (service.label != 'none')
+                          Container(
+                            margin: const EdgeInsets.only(top: 4),
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: isNeed ? Colors.blue.withValues(alpha: 0.2) : Colors.orange.withValues(alpha: 0.2),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Text(
+                              isNeed ? 'Lo Necesito' : 'Lo Quiero',
+                              style: TextStyle(fontSize: 10, color: isNeed ? Colors.blue : Colors.orange),
+                            ),
+                          ),
+                      ],
+                    ),
+                    trailing: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text(
+                          '${isIncome ? '+' : '-'}\$${service.amount.toStringAsFixed(2)}',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w900, 
+                            color: isIncome ? Colors.green : Colors.redAccent,
+                          ),
+                        ),
+                        if (service.autoGenerateTransaction)
+                          const Icon(Icons.autorenew, size: 14, color: Colors.grey),
+                      ],
+                    ),
                     onTap: () {
                       Navigator.push(
                         context,
