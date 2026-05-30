@@ -30,6 +30,7 @@ class _QuickRecordBottomSheetState extends ConsumerState<QuickRecordBottomSheet>
   String? _selectedCategoryId;
   final TextEditingController _descController = TextEditingController();
   final TextEditingController _thirdPartyController = TextEditingController();
+  final FocusNode _amountFocusNode = FocusNode();
 
   final _thirdPartyId = 'THIRD_PARTY';
 
@@ -37,10 +38,14 @@ class _QuickRecordBottomSheetState extends ConsumerState<QuickRecordBottomSheet>
   void initState() {
     super.initState();
     _loadDefaultAccount();
+    _amountFocusNode.addListener(() {
+      if (mounted) setState(() {});
+    });
   }
 
   @override
   void dispose() {
+    _amountFocusNode.dispose();
     _amountController.dispose();
     _thirdPartyController.dispose();
     _descController.dispose();
@@ -187,9 +192,11 @@ class _QuickRecordBottomSheetState extends ConsumerState<QuickRecordBottomSheet>
           
           final isThirdPartyInvolved = _type == 'transfer' && (_selectedAccountId == _thirdPartyId || _destinationAccountId == _thirdPartyId);
           final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+          final safeBottom = MediaQuery.of(context).padding.bottom;
+          final actualBottomPadding = bottomInset > 0 ? bottomInset : safeBottom;
 
           return Padding(
-            padding: EdgeInsets.only(bottom: bottomInset),
+            padding: EdgeInsets.only(bottom: actualBottomPadding),
             child: Column(
               children: [
                 const SizedBox(height: 8),
@@ -204,11 +211,12 @@ class _QuickRecordBottomSheetState extends ConsumerState<QuickRecordBottomSheet>
                 const SizedBox(height: 16),
                 TextField(
                   controller: _amountController,
+                  focusNode: _amountFocusNode,
                   keyboardType: const TextInputType.numberWithOptions(decimal: true),
                   textAlign: TextAlign.center,
                   style: TextStyle(fontSize: 56, fontWeight: FontWeight.w900, letterSpacing: -2, color: colorScheme.onSurface),
-                  decoration: const InputDecoration(
-                    hintText: "0.00",
+                  decoration: InputDecoration(
+                    hintText: _amountFocusNode.hasFocus ? "" : "0.00",
                     border: InputBorder.none,
                   ),
                 ),
@@ -303,7 +311,7 @@ class _QuickRecordBottomSheetState extends ConsumerState<QuickRecordBottomSheet>
                     child: const Text("Guardar"),
                   ),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 16),
               ],
             ),
           );
