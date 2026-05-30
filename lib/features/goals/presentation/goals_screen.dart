@@ -4,6 +4,7 @@ import 'package:uuid/uuid.dart';
 import 'package:drift/drift.dart' as drift;
 import '../../../core/database/app_database.dart';
 import '../../../core/providers/database_provider.dart';
+import 'screens/goal_form_screen.dart';
 
 class GoalsScreen extends ConsumerWidget {
   const GoalsScreen({super.key});
@@ -67,9 +68,21 @@ class GoalsScreen extends ConsumerWidget {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Text(goal.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
-                            if (goal.targetDate != null)
-                              Text('Límite: ${goal.targetDate!.day}/${goal.targetDate!.month}/${goal.targetDate!.year}', style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                            Expanded(
+                              child: Text(goal.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18), overflow: TextOverflow.ellipsis),
+                            ),
+                            Row(
+                              children: [
+                                if (goal.targetDate != null)
+                                  Text('Límite: ${goal.targetDate!.day}/${goal.targetDate!.month}/${goal.targetDate!.year}', style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                                IconButton(
+                                  icon: const Icon(Icons.edit, color: Colors.blue, size: 20),
+                                  onPressed: () {
+                                    Navigator.push(context, MaterialPageRoute(builder: (_) => GoalFormScreen(goal: goal)));
+                                  },
+                                ),
+                              ],
+                            ),
                           ],
                         ),
                         const SizedBox(height: 8),
@@ -88,92 +101,17 @@ class GoalsScreen extends ConsumerWidget {
         error: (e, s) => Center(child: Text('Error: $e')),
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _showCreateGoalDialog(context, ref),
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const GoalFormScreen()),
+          );
+        },
         icon: const Icon(Icons.flag),
         label: const Text('Nueva Meta'),
       ),
     );
   }
-
-  void _showCreateGoalDialog(BuildContext context, WidgetRef ref) {
-    final nameController = TextEditingController();
-    final amountController = TextEditingController();
-    DateTime? selectedDate;
-
-    showDialog(
-      context: context,
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setState) {
-            return AlertDialog(
-              title: const Text('Registrar Meta'),
-              content: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    TextField(
-                      controller: nameController,
-                      decoration: const InputDecoration(labelText: 'Nombre', hintText: 'Ej. Auto Nuevo'),
-                    ),
-                    const SizedBox(height: 12),
-                    TextField(
-                      controller: amountController,
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                      decoration: const InputDecoration(labelText: 'Monto Objetivo'),
-                    ),
-                    const SizedBox(height: 16),
-                    ListTile(
-                      contentPadding: EdgeInsets.zero,
-                      title: const Text('Fecha Límite (Opcional)', style: TextStyle(fontSize: 14)),
-                      subtitle: Text(selectedDate == null ? 'Sin caducidad' : '${selectedDate!.day}/${selectedDate!.month}/${selectedDate!.year}'),
-                      trailing: const Icon(Icons.calendar_today),
-                      onTap: () async {
-                        final date = await showDatePicker(
-                          context: context,
-                          initialDate: DateTime.now(),
-                          firstDate: DateTime.now(),
-                          lastDate: DateTime.now().add(const Duration(days: 365 * 10)),
-                        );
-                        if (date != null) {
-                          setState(() => selectedDate = date);
-                        }
-                      },
-                    ),
-                  ],
-                ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text('Cancelar', style: TextStyle(color: Colors.grey)),
-                ),
-                ElevatedButton(
-                  onPressed: () async {
-                    final name = nameController.text.trim();
-                    final amount = double.tryParse(amountController.text) ?? 0.0;
-                    
-                    if (name.isNotEmpty && amount > 0) {
-                      await ref.read(goalsDaoProvider).createGoal(
-                        GoalsCompanion.insert(
-                          id: const Uuid().v4(),
-                          name: name,
-                          targetAmount: amount,
-                          targetDate: drift.Value(selectedDate),
-                        )
-                      );
-                      if (context.mounted) Navigator.pop(context);
-                    } else {
-                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Revisa el nombre y monto')));
-                    }
-                  },
-                  child: const Text('Guardar'),
-                ),
-              ],
-            );
-          }
-        );
-      },
-    );
   }
 }
 

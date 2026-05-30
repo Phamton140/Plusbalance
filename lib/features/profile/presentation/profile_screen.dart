@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/theme_provider.dart';
 import '../../../core/providers/database_provider.dart';
+import 'screens/edit_name_screen.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
@@ -40,24 +41,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   }
 
   Future<void> _editUsername() async {
-    final ctrl = TextEditingController(text: _username);
-    final newName = await showDialog<String>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Cambiar Nombre'),
-        content: TextField(
-          controller: ctrl,
-          decoration: const InputDecoration(hintText: 'Tu nombre'),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancelar')),
-          ElevatedButton(onPressed: () => Navigator.pop(context, ctrl.text.trim()), child: const Text('Guardar')),
-        ],
-      )
+    final newName = await Navigator.push<String>(
+      context,
+      MaterialPageRoute(builder: (_) => EditNameScreen(currentName: _username)),
     );
 
     if (newName != null && newName.isNotEmpty) {
-      await ref.read(settingsDaoProvider).setSetting('profile_username', newName);
       setState(() => _username = newName);
     }
   }

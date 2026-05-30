@@ -4,6 +4,7 @@ import 'package:uuid/uuid.dart';
 import 'package:drift/drift.dart' as drift;
 import '../../../core/database/app_database.dart';
 import '../../../core/providers/database_provider.dart';
+import 'screens/service_form_screen.dart';
 
 class ServicesScreen extends ConsumerWidget {
   const ServicesScreen({super.key});
@@ -68,48 +69,12 @@ class ServicesScreen extends ConsumerWidget {
                     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Servicio eliminado')));
                   }
                 },
-                child: Card(
-                  margin: const EdgeInsets.only(bottom: 12),
-                  child: ListTile(
-                    leading: CircleAvatar(
-                      backgroundColor: Color(int.parse(service.color.replaceAll('#', '0xFF'))),
-                      child: Icon(IconData(int.parse(service.icon), fontFamily: 'MaterialIcons'), color: Colors.white),
-                    ),
-                    title: Text(service.name, style: const TextStyle(fontWeight: FontWeight.bold)),
-                    subtitle: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('${service.frequency.toUpperCase()} - Próximo cobro: ${service.nextDate.day}/${service.nextDate.month}/${service.nextDate.year}', style: const TextStyle(fontSize: 10, color: Colors.grey)),
-                        if (service.label != 'none')
-                          Container(
-                            margin: const EdgeInsets.only(top: 4),
-                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                            decoration: BoxDecoration(
-                              color: isNeed ? Colors.blue.withValues(alpha: 0.2) : Colors.orange.withValues(alpha: 0.2),
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                            child: Text(
-                              isNeed ? 'Lo Necesito' : 'Lo Quiero',
-                              style: TextStyle(fontSize: 10, color: isNeed ? Colors.blue : Colors.orange),
-                            ),
-                          ),
-                      ],
-                    ),
-                    trailing: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        Text(
-                          '${isIncome ? '+' : '-'}\$${service.amount.toStringAsFixed(2)}',
-                          style: TextStyle(
-                            fontWeight: FontWeight.w900, 
-                            color: isIncome ? Colors.green : Colors.redAccent,
-                          ),
-                        ),
-                        if (service.autoGenerateTransaction)
-                          const Icon(Icons.autorenew, size: 14, color: Colors.grey),
-                      ],
-                    ),
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => ServiceFormScreen(service: service)),
+                      );
+                    },
                   ),
                 ),
               );
@@ -120,166 +85,18 @@ class ServicesScreen extends ConsumerWidget {
         error: (e, s) => Center(child: Text('Error: $e')),
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _showCreateServiceDialog(context, ref),
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const ServiceFormScreen()),
+          );
+        },
         icon: const Icon(Icons.add),
         label: const Text('Registrar Servicio'),
       ),
     );
   }
 
-  void _showCreateServiceDialog(BuildContext context, WidgetRef ref) {
-    final nameController = TextEditingController();
-    final amountController = TextEditingController();
-    String selectedType = 'expense';
-    String selectedFrequency = 'monthly';
-    String selectedLabel = 'need';
-    bool autoPay = true;
-    DateTime? selectedDate;
-    String? selectedCategoryId;
-
-    showDialog(
-      context: context,
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setState) {
-            return AlertDialog(
-              title: const Text('Registrar Servicio / Nómina'),
-              content: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    TextField(
-                      controller: nameController,
-                      decoration: const InputDecoration(labelText: 'Nombre', hintText: 'Ej. Netflix / Salario'),
-                    ),
-                    const SizedBox(height: 12),
-                    TextField(
-                      controller: amountController,
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                      decoration: const InputDecoration(labelText: 'Monto'),
-                    ),
-                    const SizedBox(height: 12),
-                    DropdownButtonFormField<String>(
-                      initialValue: selectedType,
-                      decoration: const InputDecoration(labelText: 'Tipo'),
-                      items: const [
-                        DropdownMenuItem(value: 'expense', child: Text('Gasto (Pago)')),
-                        DropdownMenuItem(value: 'income', child: Text('Ingreso (Nómina)')),
-                      ],
-                      onChanged: (val) => setState(() => selectedType = val!),
-                    ),
-                    const SizedBox(height: 12),
-                    DropdownButtonFormField<String>(
-                      initialValue: selectedLabel,
-                      decoration: const InputDecoration(labelText: 'Etiqueta'),
-                      items: const [
-                        DropdownMenuItem(value: 'need', child: Text('Lo Necesito')),
-                        DropdownMenuItem(value: 'want', child: Text('Lo Quiero')),
-                        DropdownMenuItem(value: 'none', child: Text('Ninguna')),
-                      ],
-                      onChanged: (val) => setState(() => selectedLabel = val!),
-                    ),
-                    const SizedBox(height: 12),
-                    DropdownButtonFormField<String>(
-                      initialValue: selectedFrequency,
-                      decoration: const InputDecoration(labelText: 'Frecuencia'),
-                      items: const [
-                        DropdownMenuItem(value: 'monthly', child: Text('Mensual')),
-                        DropdownMenuItem(value: 'weekly', child: Text('Semanal')),
-                        DropdownMenuItem(value: 'yearly', child: Text('Anual')),
-                        DropdownMenuItem(value: 'once', child: Text('Una vez')),
-                      ],
-                      onChanged: (val) => setState(() => selectedFrequency = val!),
-                    ),
-                    const SizedBox(height: 12),
-                    Consumer(
-                      builder: (context, ref, child) {
-                        final catsAsync = ref.watch(StreamProvider((ref) => ref.watch(categoriesDaoProvider).watchAllCategories()));
-                        return catsAsync.when(
-                          data: (cats) {
-                            return DropdownButtonFormField<String>(
-                              isExpanded: true,
-                              value: selectedCategoryId,
-                              decoration: const InputDecoration(labelText: 'Categoría (Opcional)'),
-                              items: [
-                                const DropdownMenuItem(value: null, child: Text('Ninguna')),
-                                ...cats.map((c) => DropdownMenuItem(value: c.id, child: Text(c.name, overflow: TextOverflow.ellipsis))),
-                              ],
-                              onChanged: (val) => setState(() => selectedCategoryId = val),
-                            );
-                          },
-                          loading: () => const SizedBox(),
-                          error: (_, __) => const SizedBox(),
-                        );
-                      }
-                    ),
-                    const SizedBox(height: 16),
-                    ListTile(
-                      contentPadding: EdgeInsets.zero,
-                      title: const Text('Día de cobro', style: TextStyle(fontSize: 14)),
-                      subtitle: Text(selectedDate == null ? 'Selecciona una fecha' : '${selectedDate!.day}/${selectedDate!.month}/${selectedDate!.year}'),
-                      trailing: const Icon(Icons.calendar_today),
-                      onTap: () async {
-                        final date = await showDatePicker(
-                          context: context,
-                          initialDate: DateTime.now(),
-                          firstDate: DateTime.now(),
-                          lastDate: DateTime.now().add(const Duration(days: 365 * 5)),
-                        );
-                        if (date != null) {
-                          setState(() => selectedDate = date);
-                        }
-                      },
-                    ),
-                    const SizedBox(height: 12),
-                    SwitchListTile(
-                      contentPadding: EdgeInsets.zero,
-                      title: const Text('Cobro/Ingreso Automático', style: TextStyle(fontSize: 14)),
-                      subtitle: const Text('Se registrará solo en la fecha de corte', style: TextStyle(fontSize: 12)),
-                      value: autoPay,
-                      onChanged: (val) => setState(() => autoPay = val),
-                    ),
-                  ],
-                ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text('Cancelar', style: TextStyle(color: Colors.grey)),
-                ),
-                ElevatedButton(
-                  onPressed: () async {
-                    final name = nameController.text.trim();
-                    final amount = double.tryParse(amountController.text) ?? 0.0;
-                    
-                    if (name.isNotEmpty && amount > 0 && selectedDate != null) {
-                      await ref.read(servicesDaoProvider).createService(
-                        ServicesCompanion.insert(
-                          id: const Uuid().v4(),
-                          name: name,
-                          amount: amount,
-                          type: drift.Value(selectedType),
-                          label: drift.Value(selectedLabel),
-                          frequency: selectedFrequency,
-                          nextDate: selectedDate!,
-                          categoryId: drift.Value(selectedCategoryId),
-                          autoGenerateTransaction: drift.Value(autoPay),
-                        )
-                      );
-                      if (context.mounted) Navigator.pop(context);
-                    } else {
-                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Completa todos los campos y la fecha')));
-                    }
-                  },
-                  child: const Text('Guardar'),
-                ),
-              ],
-            );
-          }
-        );
-      },
-    );
-  }
 }
 
 final servicesProvider = StreamProvider<List<Service>>((ref) {
