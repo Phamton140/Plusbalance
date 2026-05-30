@@ -130,8 +130,11 @@ class DashboardScreen extends ConsumerWidget {
                             if (services.isEmpty) return const SizedBox();
                             return Column(
                               children: services.map((s) {
-                                final days = s.nextDate.difference(DateTime.now()).inDays;
-                                final daysText = days == 0 ? '¡Hoy!' : 'en $days días';
+                                final now = DateTime.now();
+                                final today = DateTime(now.year, now.month, now.day);
+                                final target = DateTime(s.nextDate.year, s.nextDate.month, s.nextDate.day);
+                                final days = target.difference(today).inDays;
+                                final daysText = days <= 0 ? '¡Hoy!' : 'en $days días';
                                 return Container(
                                   margin: const EdgeInsets.only(bottom: 8, left: 24, right: 24),
                                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
