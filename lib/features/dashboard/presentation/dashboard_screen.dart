@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:fl_chart/fl_chart.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../transactions/presentation/widgets/quick_record_bottom_sheet.dart';
 import '../../../core/providers/database_provider.dart';
@@ -65,16 +64,12 @@ class DashboardScreen extends ConsumerWidget {
                             radius: 24,
                             backgroundColor: Colors.grey.withValues(alpha: 0.1),
                             child: avatarUrlAsync.when(
-                              data: (url) => ClipOval(
-                                child: SvgPicture.network(
-                                  url, 
-                                  width: 48, 
-                                  height: 48,
-                                  placeholderBuilder: (context) => const CircularProgressIndicator(),
-                                ),
+                              data: (url) => CircleAvatar(
+                                radius: 24,
+                                backgroundImage: NetworkImage(url),
                               ),
                               loading: () => const CircularProgressIndicator(),
-                              error: (_, __) => const Icon(Icons.person),
+                              error: (e, s) => const Icon(Icons.person),
                             ),
                           ),
                         );
@@ -165,11 +160,46 @@ class _BalanceLineChart extends StatelessWidget {
       spots.add(FlSpot(1, spots.first.y));
     }
 
+    final maxY = currentBal > 0 ? currentBal * 1.5 : 1000.0;
+    
     return LineChart(
       LineChartData(
-        gridData: const FlGridData(show: false),
-        titlesData: const FlTitlesData(show: false),
+        gridData: FlGridData(
+          show: true,
+          drawVerticalLine: false,
+          horizontalInterval: maxY / 4,
+          getDrawingHorizontalLine: (value) => FlLine(color: Colors.grey.withValues(alpha: 0.2), strokeWidth: 1),
+        ),
+        titlesData: FlTitlesData(
+          show: true,
+          rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          bottomTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          leftTitles: AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: true,
+              reservedSize: 40,
+              getTitlesWidget: (value, meta) {
+                if (value == 0) return const SizedBox();
+                return Text('\$${(value / 1000).toStringAsFixed(1)}k', style: const TextStyle(color: Colors.grey, fontSize: 10));
+              },
+            ),
+          ),
+        ),
         borderData: FlBorderData(show: false),
+        lineTouchData: LineTouchData(
+          touchTooltipData: LineTouchTooltipData(
+            getTooltipColor: (spot) => Theme.of(context).colorScheme.primary,
+            getTooltipItems: (touchedSpots) {
+              return touchedSpots.map((spot) {
+                return LineTooltipItem(
+                  '\$${spot.y.toStringAsFixed(2)}',
+                  const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                );
+              }).toList();
+            },
+          ),
+        ),
         lineBarsData: [
           LineChartBarData(
             spots: spots,
@@ -180,7 +210,14 @@ class _BalanceLineChart extends StatelessWidget {
             dotData: const FlDotData(show: false),
             belowBarData: BarAreaData(
               show: true,
-              color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Theme.of(context).colorScheme.primary.withValues(alpha: 0.3),
+                  Theme.of(context).colorScheme.primary.withValues(alpha: 0.0),
+                ],
+              ),
             ),
           ),
         ],
@@ -200,7 +237,7 @@ final recentTransactionsProvider = StreamProvider<List<Transaction>>((ref) {
 final _avatarUrlProvider = FutureProvider<String>((ref) async {
   final dao = ref.watch(settingsDaoProvider);
   final url = await dao.getSetting('profile_avatar_url');
-  return url ?? 'https://api.dicebear.com/7.x/avataaars/svg?seed=Felix';
+  return url ?? 'https://api.dicebear.com/7.x/adventurer/png?seed=Felix&backgroundColor=c0aede';
 });
 
 class _ModuleGrid extends StatelessWidget {

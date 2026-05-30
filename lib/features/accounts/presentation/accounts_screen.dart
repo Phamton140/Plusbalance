@@ -160,14 +160,30 @@ class _AccountCard extends ConsumerWidget {
         
         return Card(
           margin: const EdgeInsets.only(bottom: 16),
+          elevation: 4,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           child: InkWell(
             onTap: () => _showOptions(context, ref, account, isDefault),
             borderRadius: BorderRadius.circular(16),
             child: Container(
-              padding: const EdgeInsets.all(20),
+              padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(16),
-                color: Color(int.parse(account.color.replaceAll('#', '0xFF'))),
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    Color(int.parse(account.color.replaceAll('#', '0xFF'))),
+                    Color(int.parse(account.color.replaceAll('#', '0xFF'))).withValues(alpha: 0.7),
+                  ],
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Color(int.parse(account.color.replaceAll('#', '0xFF'))).withValues(alpha: 0.4),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  )
+                ]
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -177,22 +193,49 @@ class _AccountCard extends ConsumerWidget {
                     children: [
                       Text(
                         account.institutionName ?? 'Banco',
-                        style: const TextStyle(color: Colors.white70, fontSize: 14),
+                        style: const TextStyle(color: Colors.white70, fontSize: 16, fontWeight: FontWeight.w500),
                       ),
-                      if (isDefault)
-                        const Icon(Icons.star, color: Colors.amber, size: 20),
+                      Row(
+                        children: [
+                          if (isDefault) const Icon(Icons.star, color: Colors.amber, size: 20),
+                          const SizedBox(width: 8),
+                          const Icon(Icons.wifi_rounded, color: Colors.white70, size: 28),
+                        ],
+                      )
                     ],
                   ),
+                  const SizedBox(height: 16),
+                  const Icon(Icons.memory, color: Colors.white54, size: 36),
                   const SizedBox(height: 8),
                   Text(
-                    account.name,
-                    style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                    '**** **** **** ${account.id.substring(account.id.length - 4).toUpperCase()}',
+                    style: const TextStyle(color: Colors.white, fontSize: 18, fontFamily: 'monospace', letterSpacing: 2),
                   ),
-                  const SizedBox(height: 24),
-                  Text(
-                    '\$${account.balance.toStringAsFixed(2)}',
-                    style: const TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.w900, letterSpacing: -1),
-                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            account.name.toUpperCase(),
+                            style: const TextStyle(color: Colors.white70, fontSize: 12, letterSpacing: 1),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            '\$${account.balance.toStringAsFixed(2)}',
+                            style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
+                          ),
+                        ],
+                      ),
+                      const Text(
+                        'VISA',
+                        style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w900, fontStyle: FontStyle.italic),
+                      ),
+                    ],
+                  )
                 ],
               ),
             ),

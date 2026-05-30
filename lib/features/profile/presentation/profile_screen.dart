@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/theme_provider.dart';
@@ -14,7 +13,7 @@ class ProfileScreen extends ConsumerStatefulWidget {
 
 class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   String _username = 'Usuario +Balance';
-  String _avatarUrl = 'https://api.dicebear.com/7.x/avataaars/svg?seed=Felix';
+  String _avatarUrl = 'https://api.dicebear.com/7.x/adventurer/png?seed=Felix&backgroundColor=c0aede';
 
   @override
   void initState() {
@@ -74,12 +73,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   child: CircleAvatar(
                     radius: 50,
                     backgroundColor: Colors.grey.withValues(alpha: 0.1),
-                    child: SvgPicture.network(
-                      _avatarUrl,
-                      width: 100,
-                      height: 100,
-                      placeholderBuilder: (context) => const CircularProgressIndicator(),
-                    ),
+                    backgroundImage: NetworkImage(_avatarUrl),
                   ),
                 ),
                 const SizedBox(height: 16),

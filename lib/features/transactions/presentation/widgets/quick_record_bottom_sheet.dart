@@ -26,11 +26,20 @@ class _QuickRecordBottomSheetState extends ConsumerState<QuickRecordBottomSheet>
   String _type = 'expense';
   String? _selectedAccountId;
   String? _destinationAccountId;
+  final TextEditingController _thirdPartyController = TextEditingController();
+
+  final _thirdPartyId = 'THIRD_PARTY';
 
   @override
   void initState() {
     super.initState();
     _loadDefaultAccount();
+  }
+
+  @override
+  void dispose() {
+    _thirdPartyController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadDefaultAccount() async {
@@ -71,32 +80,73 @@ class _QuickRecordBottomSheetState extends ConsumerState<QuickRecordBottomSheet>
     final transactionsDao = ref.read(transactionsDaoProvider);
 
     if (_type == 'transfer') {
-      await transactionsDao.createTransaction(
-        TransactionsCompanion.insert(
-          id: const Uuid().v4(),
-          amount: amountDouble,
-          date: DateTime.now(),
-          type: 'transfer',
-          accountId: _selectedAccountId!,
-          description: const drift.Value('Transferencia enviada'),
-        ),
-        _selectedAccountId!,
-        amountDouble,
-        false,
-      );
-      await transactionsDao.createTransaction(
-        TransactionsCompanion.insert(
-          id: const Uuid().v4(),
-          amount: amountDouble,
-          date: DateTime.now(),
-          type: 'transfer',
-          accountId: _destinationAccountId!,
-          description: const drift.Value('Transferencia recibida'),
-        ),
-        _destinationAccountId!,
-        amountDouble,
-        true,
-      );
+      if (_selectedAccountId == _thirdPartyId && _destinationAccountId == _thirdPartyId) {
+        // Invalido
+        return;
+      }
+      
+      final descriptionText = _thirdPartyController.text.trim();
+      final finalDescription = descriptionText.isNotEmpty ? descriptionText : 'Tercero';
+
+      if (_selectedAccountId == _thirdPartyId) {
+        // Ingreso desde un tercero
+        await transactionsDao.createTransaction(
+          TransactionsCompanion.insert(
+            id: const Uuid().v4(),
+            amount: amountDouble,
+            date: DateTime.now(),
+            type: 'income',
+            accountId: _destinationAccountId!,
+            description: drift.Value('De: $finalDescription'),
+          ),
+          _destinationAccountId!,
+          amountDouble,
+          true,
+        );
+      } else if (_destinationAccountId == _thirdPartyId) {
+        // Gasto hacia un tercero
+        await transactionsDao.createTransaction(
+          TransactionsCompanion.insert(
+            id: const Uuid().v4(),
+            amount: amountDouble,
+            date: DateTime.now(),
+            type: 'expense',
+            accountId: _selectedAccountId!,
+            description: drift.Value('Para: $finalDescription'),
+          ),
+          _selectedAccountId!,
+          amountDouble,
+          false,
+        );
+      } else {
+        // Transferencia Normal
+        await transactionsDao.createTransaction(
+          TransactionsCompanion.insert(
+            id: const Uuid().v4(),
+            amount: amountDouble,
+            date: DateTime.now(),
+            type: 'transfer',
+            accountId: _selectedAccountId!,
+            description: const drift.Value('Transferencia enviada'),
+          ),
+          _selectedAccountId!,
+          amountDouble,
+          false,
+        );
+        await transactionsDao.createTransaction(
+          TransactionsCompanion.insert(
+            id: const Uuid().v4(),
+            amount: amountDouble,
+            date: DateTime.now(),
+            type: 'transfer',
+            accountId: _destinationAccountId!,
+            description: const drift.Value('Transferencia recibida'),
+          ),
+          _destinationAccountId!,
+          amountDouble,
+          true,
+        );
+      }
     } else {
       await transactionsDao.createTransaction(
         TransactionsCompanion.insert(
@@ -116,12 +166,21 @@ class _QuickRecordBottomSheetState extends ConsumerState<QuickRecordBottomSheet>
     if (mounted) Navigator.pop(context);
   }
 
-  Widget _buildAccountSelector(List<Account> accounts, String? selectedId, Function(String?) onChanged, String label) {
+  Widget _buildAccountSelector(List<Account> accounts, String? selectedId, Function(String?) onChanged, String label, {bool allowThirdParty = false}) {
+    final List<DropdownMenuItem<String>> items = accounts.map((a) => DropdownMenuItem(value: a.id, child: Text(a.name, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12)))).toList();
+    
+    if (allowThirdParty) {
+      items.insert(0, const DropdownMenuItem(value: 'THIRD_PARTY', child: Text('A Tercero', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.amber))));
+    }
+
+    // Verify if selectedId is still valid, else null
+    final validSelectedId = items.any((i) => i.value == selectedId) ? selectedId : null;
+
     return DropdownButtonFormField<String>(
       isExpanded: true,
-      value: selectedId,
+      value: validSelectedId,
       decoration: InputDecoration(labelText: label, labelStyle: const TextStyle(fontSize: 12)),
-      items: accounts.map((a) => DropdownMenuItem(value: a.id, child: Text(a.name, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12)))).toList(),
+      items: items,
       onChanged: onChanged,
     );
   }
@@ -158,7 +217,7 @@ class _QuickRecordBottomSheetState extends ConsumerState<QuickRecordBottomSheet>
     final accountsAsync = ref.watch(activeAccountsProvider);
 
     return Container(
-      height: MediaQuery.of(context).size.height * 0.85,
+      height: MediaQuery.of(context).size.height * 0.90,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: colorScheme.surface,
@@ -166,13 +225,10 @@ class _QuickRecordBottomSheetState extends ConsumerState<QuickRecordBottomSheet>
       ),
       child: accountsAsync.when(
         data: (accounts) {
-          if (_selectedAccountId == null && accounts.isNotEmpty) {
-            // No default account selected, default to the first one available in the list
-            // However, since state mutation shouldn't happen inside `build`, we use a microtask
-            // or just use the local var. We'll avoid setState here.
-          }
           final effectiveSelectedAccount = _selectedAccountId ?? (accounts.isNotEmpty ? accounts.first.id : null);
           
+          final isThirdPartyInvolved = _type == 'transfer' && (_selectedAccountId == _thirdPartyId || _destinationAccountId == _thirdPartyId);
+
           return Column(
             children: [
               const SizedBox(height: 12),
@@ -181,23 +237,38 @@ class _QuickRecordBottomSheetState extends ConsumerState<QuickRecordBottomSheet>
               Text(_amount, style: TextStyle(fontSize: 56, fontWeight: FontWeight.w900, letterSpacing: -2, color: colorScheme.onSurface)),
               const Spacer(),
               SegmentedButton<String>(
-                segments: const [
-                  ButtonSegment(value: 'expense', label: Text('Gasto', style: TextStyle(fontSize: 12))),
-                  ButtonSegment(value: 'income', label: Text('Ingreso', style: TextStyle(fontSize: 12))),
-                  ButtonSegment(value: 'transfer', label: Text('Transferir', style: TextStyle(fontSize: 12))),
+                segments: [
+                  ButtonSegment(value: 'expense', label: Container(width: 70, alignment: Alignment.center, child: const Text('Gasto', style: TextStyle(fontSize: 12)))),
+                  ButtonSegment(value: 'income', label: Container(width: 70, alignment: Alignment.center, child: const Text('Ingreso', style: TextStyle(fontSize: 12)))),
+                  ButtonSegment(value: 'transfer', label: Container(width: 70, alignment: Alignment.center, child: const Text('Transferir', style: TextStyle(fontSize: 12)))),
                 ],
                 selected: {_type},
                 onSelectionChanged: (set) => setState(() => _type = set.first),
               ),
               const SizedBox(height: 16),
               if (_type == 'transfer')
-                Row(children: [
-                  Expanded(child: _buildAccountSelector(accounts, effectiveSelectedAccount, (val) => setState(() => _selectedAccountId = val), 'Origen')),
-                  const SizedBox(width: 8),
-                  Icon(Icons.arrow_forward, color: colorScheme.onSurface),
-                  const SizedBox(width: 8),
-                  Expanded(child: _buildAccountSelector(accounts, _destinationAccountId, (val) => setState(() => _destinationAccountId = val), 'Destino')),
-                ])
+                Column(
+                  children: [
+                    Row(children: [
+                      Expanded(child: _buildAccountSelector(accounts, effectiveSelectedAccount, (val) => setState(() => _selectedAccountId = val), 'Origen', allowThirdParty: true)),
+                      const SizedBox(width: 8),
+                      Icon(Icons.arrow_forward, color: colorScheme.onSurface),
+                      const SizedBox(width: 8),
+                      Expanded(child: _buildAccountSelector(accounts, _destinationAccountId, (val) => setState(() => _destinationAccountId = val), 'Destino', allowThirdParty: true)),
+                    ]),
+                    if (isThirdPartyInvolved) ...[
+                      const SizedBox(height: 12),
+                      TextField(
+                        controller: _thirdPartyController,
+                        decoration: const InputDecoration(
+                          labelText: 'Descripción / Motivo del Tercero',
+                          hintText: 'Ej. Juan Perez',
+                          isDense: true,
+                        ),
+                      ),
+                    ]
+                  ],
+                )
               else
                 _buildAccountSelector(accounts, effectiveSelectedAccount, (val) => setState(() => _selectedAccountId = val), 'Cuenta'),
               const Spacer(),
@@ -207,8 +278,7 @@ class _QuickRecordBottomSheetState extends ConsumerState<QuickRecordBottomSheet>
                 width: double.infinity,
                 height: 56,
                 child: ElevatedButton(
-                  onPressed: (_amount != "0" && effectiveSelectedAccount != null) ? () {
-                    // Update the state so the save function has the correct selected account
+                  onPressed: (_amount != "0" && effectiveSelectedAccount != null && !(_selectedAccountId == _thirdPartyId && _destinationAccountId == _thirdPartyId)) ? () {
                     _selectedAccountId = effectiveSelectedAccount;
                     _saveTransaction();
                   } : null,
