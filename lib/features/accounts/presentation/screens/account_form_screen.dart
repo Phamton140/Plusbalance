@@ -93,19 +93,24 @@ class _AccountFormScreenState extends ConsumerState<AccountFormScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              TextField(
+              TextField(enableSuggestions: false, autocorrect: false, 
                 controller: _bankController,
                 decoration: const InputDecoration(labelText: 'Institución (Ej. Banco BHD)', hintText: 'Banco'),
               ),
               const SizedBox(height: 16),
-              TextField(
+              TextField(enableSuggestions: false, autocorrect: false, 
                 controller: _nameController,
                 decoration: const InputDecoration(labelText: 'Alias (Ej. Tarjeta Gold)', hintText: 'Alias de cuenta'),
               ),
               const SizedBox(height: 16),
-              TextField(
+              TextField(enableSuggestions: false, autocorrect: false, 
                 controller: _balanceController,
                 keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                onTap: () {
+                  if (_balanceController.text.isNotEmpty) {
+                    _balanceController.selection = TextSelection(baseOffset: 0, extentOffset: _balanceController.text.length);
+                  }
+                },
                 decoration: const InputDecoration(labelText: 'Saldo Inicial / Actual'),
               ),
               const SizedBox(height: 24),

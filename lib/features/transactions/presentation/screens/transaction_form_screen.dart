@@ -193,11 +193,16 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  TextField(
+                  TextField(enableSuggestions: false, autocorrect: false, 
                     controller: _amountController,
                     focusNode: _amountFocusNode,
                     keyboardType: const TextInputType.numberWithOptions(decimal: true),
                     textAlign: TextAlign.center,
+                    onTap: () {
+                      if (_amountController.text.isNotEmpty) {
+                        _amountController.selection = TextSelection(baseOffset: 0, extentOffset: _amountController.text.length);
+                      }
+                    },
                     style: TextStyle(fontSize: 56, fontWeight: FontWeight.w900, letterSpacing: -2, color: colorScheme.onSurface),
                     decoration: InputDecoration(
                       hintText: _amountFocusNode.hasFocus ? "" : "0.00",
@@ -233,7 +238,7 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
                         
                         if (isThirdPartyInvolved) ...[
                           const SizedBox(height: 24),
-                          TextField(
+                          TextField(enableSuggestions: false, autocorrect: false, 
                             controller: _thirdPartyController,
                             decoration: const InputDecoration(
                               labelText: 'Descripción / Motivo del Tercero',
@@ -247,7 +252,7 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
                     _buildAccountSelector(accounts, _selectedAccountId, (val) => setState(() => _selectedAccountId = val), 'Cuenta', requireBalance: _type == 'expense'),
                   
                   const SizedBox(height: 24),
-                  TextField(
+                  TextField(enableSuggestions: false, autocorrect: false, 
                     controller: _descController,
                     decoration: const InputDecoration(labelText: 'Descripción (Opcional)'),
                   ),

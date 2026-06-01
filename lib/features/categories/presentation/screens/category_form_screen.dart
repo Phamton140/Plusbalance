@@ -97,7 +97,7 @@ class _CategoryFormScreenState extends ConsumerState<CategoryFormScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              TextField(
+              TextField(enableSuggestions: false, autocorrect: false, 
                 controller: _nameController,
                 decoration: const InputDecoration(labelText: 'Nombre'),
               ),

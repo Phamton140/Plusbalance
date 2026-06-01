@@ -51,10 +51,15 @@ class _GoalAddFundsScreenState extends ConsumerState<GoalAddFundsScreen> {
             children: [
               const Text('Monto a abonar', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
               const SizedBox(height: 8),
-              TextField(
+              TextField(enableSuggestions: false, autocorrect: false, 
                 controller: _amountController,
                 keyboardType: const TextInputType.numberWithOptions(decimal: true),
                 autofocus: true,
+                onTap: () {
+                  if (_amountController.text.isNotEmpty) {
+                    _amountController.selection = TextSelection(baseOffset: 0, extentOffset: _amountController.text.length);
+                  }
+                },
                 decoration: const InputDecoration(
                   prefixText: '\$ ',
                   border: OutlineInputBorder(),
