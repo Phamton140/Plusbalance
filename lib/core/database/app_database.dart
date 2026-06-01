@@ -31,6 +31,12 @@ class AppDatabase extends _$AppDatabase {
     return MigrationStrategy(
       onCreate: (Migrator m) async {
         await m.createAll();
+        await into(accounts).insert(AccountsCompanion.insert(
+          id: 'efectivo-default',
+          name: 'Efectivo',
+          type: 'cash',
+          color: const Value('#9E9E9E'),
+        ));
       },
       onUpgrade: (Migrator m, int from, int to) async {
         if (from < 2) {

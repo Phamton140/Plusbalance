@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import '../../transactions/presentation/widgets/quick_record_bottom_sheet.dart';
+import '../../transactions/presentation/screens/transaction_form_screen.dart';
 import '../../../core/providers/database_provider.dart';
 import '../../../core/automation/automation_engine.dart';
 import '../../../core/database/app_database.dart';
@@ -180,11 +180,9 @@ class DashboardScreen extends ConsumerWidget {
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () {
-          showModalBottomSheet(
-            context: context,
-            isScrollControlled: true,
-            backgroundColor: Colors.transparent,
-            builder: (context) => const QuickRecordBottomSheet(),
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const TransactionFormScreen()),
           );
         },
         icon: const Icon(Icons.add),
@@ -247,7 +245,7 @@ class _ExpensePieChartState extends State<_ExpensePieChart> {
               centerSpaceRadius: 30,
               sections: List.generate(entries.length, (i) {
                 final isTouched = i == touchedIndex;
-                final fontSize = isTouched ? 16.0 : 0.0;
+                final fontSize = isTouched ? 14.0 : 11.0;
                 final radius = isTouched ? 60.0 : 50.0;
                 final e = entries[i];
                 final percentage = (e.value / total) * 100;
@@ -263,7 +261,7 @@ class _ExpensePieChartState extends State<_ExpensePieChart> {
                 return PieChartSectionData(
                   color: color,
                   value: e.value,
-                  title: isTouched ? '${percentage.toStringAsFixed(1)}%' : '',
+                  title: '${percentage.toStringAsFixed(0)}%',
                   radius: radius,
                   titleStyle: TextStyle(fontSize: fontSize, fontWeight: FontWeight.bold, color: Colors.white),
                 );

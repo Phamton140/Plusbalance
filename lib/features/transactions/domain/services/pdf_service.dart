@@ -14,6 +14,9 @@ class PdfService {
   }) async {
     final pdf = pw.Document();
 
+    final fontRegular = await PdfGoogleFonts.robotoRegular();
+    final fontBold = await PdfGoogleFonts.robotoBold();
+
     double totalIncomes = 0;
     double totalExpenses = 0;
 
@@ -50,6 +53,10 @@ class PdfService {
       pw.MultiPage(
         pageFormat: PdfPageFormat.a4,
         margin: const pw.EdgeInsets.all(32),
+        theme: pw.ThemeData.withFont(
+          base: fontRegular,
+          bold: fontBold,
+        ),
         header: (context) {
           return pw.Column(
             crossAxisAlignment: pw.CrossAxisAlignment.start,
@@ -79,25 +86,28 @@ class PdfService {
               ]
             ),
             pw.SizedBox(height: 32),
-            pw.TableHelper.fromTextArray(
-              headers: ['Fecha', 'Descripción', 'Cuenta', 'Tipo', 'Monto'],
-              data: tableData,
-              border: pw.TableBorder.all(color: PdfColors.grey300, width: 0.5),
-              headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold, color: PdfColors.white),
-              headerDecoration: const pw.BoxDecoration(color: PdfColors.blueGrey800),
-              cellHeight: 30,
-              cellAlignments: {
-                0: pw.Alignment.centerLeft,
-                1: pw.Alignment.centerLeft,
-                2: pw.Alignment.centerLeft,
-                3: pw.Alignment.center,
-                4: pw.Alignment.centerRight,
-              },
-              cellStyle: const pw.TextStyle(fontSize: 10),
-              rowDecoration: const pw.BoxDecoration(
-                border: pw.Border(bottom: pw.BorderSide(color: PdfColors.grey200, width: 0.5))
-              ),
-            ),
+            if (tableData.isNotEmpty)
+              pw.TableHelper.fromTextArray(
+                headers: ['Fecha', 'Descripción', 'Cuenta', 'Tipo', 'Monto'],
+                data: tableData,
+                border: pw.TableBorder.all(color: PdfColors.grey300, width: 0.5),
+                headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold, color: PdfColors.white),
+                headerDecoration: const pw.BoxDecoration(color: PdfColors.blueGrey800),
+                cellHeight: 30,
+                cellAlignments: {
+                  0: pw.Alignment.centerLeft,
+                  1: pw.Alignment.centerLeft,
+                  2: pw.Alignment.centerLeft,
+                  3: pw.Alignment.center,
+                  4: pw.Alignment.centerRight,
+                },
+                cellStyle: const pw.TextStyle(fontSize: 10),
+                rowDecoration: const pw.BoxDecoration(
+                  border: pw.Border(bottom: pw.BorderSide(color: PdfColors.grey200, width: 0.5))
+                ),
+              )
+            else
+              pw.Center(child: pw.Text('No hay transacciones en este periodo', style: const pw.TextStyle(fontSize: 14))),
           ];
         },
       )

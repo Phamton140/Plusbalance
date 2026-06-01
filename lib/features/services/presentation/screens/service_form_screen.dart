@@ -23,6 +23,18 @@ class _ServiceFormScreenState extends ConsumerState<ServiceFormScreen> {
   late bool _autoPay;
   DateTime? _selectedDate;
   String? _selectedCategoryId;
+  
+  List<int> _selectedDays = [];
+
+  final List<Map<String, dynamic>> _weekDays = [
+    {'id': 1, 'name': 'L'},
+    {'id': 2, 'name': 'M'},
+    {'id': 3, 'name': 'M'},
+    {'id': 4, 'name': 'J'},
+    {'id': 5, 'name': 'V'},
+    {'id': 6, 'name': 'S'},
+    {'id': 7, 'name': 'D'},
+  ];
 
   @override
   void initState() {
@@ -30,11 +42,21 @@ class _ServiceFormScreenState extends ConsumerState<ServiceFormScreen> {
     _nameController = TextEditingController(text: widget.service?.name ?? '');
     _amountController = TextEditingController(text: widget.service?.amount.toString() ?? '');
     _selectedType = widget.service?.type ?? 'expense';
-    _selectedFrequency = widget.service?.frequency ?? 'monthly';
+    
     _selectedLabel = widget.service?.label ?? 'need';
+    if (_selectedLabel == 'none') _selectedLabel = 'need'; // Migrate old data
+
     _autoPay = widget.service?.autoGenerateTransaction ?? true;
     _selectedDate = widget.service?.nextDate;
     _selectedCategoryId = widget.service?.categoryId;
+
+    final freq = widget.service?.frequency ?? 'monthly';
+    if (freq.startsWith('weekly:')) {
+      _selectedFrequency = 'weekly';
+      _selectedDays = freq.split(':')[1].split(',').map(int.parse).toList();
+    } else {
+      _selectedFrequency = freq;
+    }
   }
 
   @override
@@ -53,6 +75,17 @@ class _ServiceFormScreenState extends ConsumerState<ServiceFormScreen> {
       return;
     }
 
+    if (_selectedFrequency == 'weekly' && _selectedDays.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Selecciona al menos un día para la frecuencia semanal')));
+      return;
+    }
+
+    String finalFrequency = _selectedFrequency;
+    if (_selectedFrequency == 'weekly' && _selectedDays.isNotEmpty) {
+      _selectedDays.sort();
+      finalFrequency = 'weekly:${_selectedDays.join(',')}';
+    }
+
     final dao = ref.read(servicesDaoProvider);
     if (widget.service == null) {
       await dao.createService(
@@ -62,7 +95,7 @@ class _ServiceFormScreenState extends ConsumerState<ServiceFormScreen> {
           amount: amount,
           type: drift.Value(_selectedType),
           label: drift.Value(_selectedLabel),
-          frequency: _selectedFrequency,
+          frequency: finalFrequency,
           nextDate: _selectedDate!,
           categoryId: drift.Value(_selectedCategoryId),
           autoGenerateTransaction: drift.Value(_autoPay),
@@ -75,7 +108,7 @@ class _ServiceFormScreenState extends ConsumerState<ServiceFormScreen> {
           amount: amount,
           type: _selectedType,
           label: _selectedLabel,
-          frequency: _selectedFrequency,
+          frequency: finalFrequency,
           nextDate: _selectedDate!,
           categoryId: drift.Value(_selectedCategoryId),
           autoGenerateTransaction: _autoPay,
@@ -125,7 +158,6 @@ class _ServiceFormScreenState extends ConsumerState<ServiceFormScreen> {
                 items: const [
                   DropdownMenuItem(value: 'need', child: Text('Lo Necesito')),
                   DropdownMenuItem(value: 'want', child: Text('Lo Quiero')),
-                  DropdownMenuItem(value: 'none', child: Text('Ninguna')),
                 ],
                 onChanged: (val) => setState(() => _selectedLabel = val!),
               ),
@@ -141,13 +173,37 @@ class _ServiceFormScreenState extends ConsumerState<ServiceFormScreen> {
                 ],
                 onChanged: (val) => setState(() => _selectedFrequency = val!),
               ),
+              if (_selectedFrequency == 'weekly') ...[
+                const SizedBox(height: 16),
+                const Text('Días de la semana', style: TextStyle(fontSize: 14, color: Colors.grey)),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 8,
+                  children: _weekDays.map((d) {
+                    final id = d['id'] as int;
+                    final isSelected = _selectedDays.contains(id);
+                    return ChoiceChip(
+                      label: Text(d['name']),
+                      selected: isSelected,
+                      onSelected: (selected) {
+                        setState(() {
+                          if (selected) {
+                            _selectedDays.add(id);
+                          } else {
+                            _selectedDays.remove(id);
+                          }
+                        });
+                      },
+                    );
+                  }).toList(),
+                )
+              ],
               const SizedBox(height: 16),
               Consumer(
                 builder: (context, ref, child) {
                   final catsAsync = ref.watch(StreamProvider((ref) => ref.watch(categoriesDaoProvider).watchAllCategories()));
                   return catsAsync.when(
                     data: (cats) {
-                      // Validate if selected category still exists
                       final validCatId = cats.any((c) => c.id == _selectedCategoryId) ? _selectedCategoryId : null;
                       return DropdownButtonFormField<String>(
                         isExpanded: true,
@@ -168,7 +224,7 @@ class _ServiceFormScreenState extends ConsumerState<ServiceFormScreen> {
               const SizedBox(height: 24),
               ListTile(
                 contentPadding: EdgeInsets.zero,
-                title: const Text('Próxima Fecha / Día de cobro', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
+                title: const Text('Próxima Fecha de Pago/Cobro', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
                 subtitle: Text(
                   _selectedDate == null ? 'Selecciona una fecha' : '${_selectedDate!.day}/${_selectedDate!.month}/${_selectedDate!.year}',
                   style: TextStyle(color: _selectedDate == null ? Colors.red : Colors.grey),
@@ -178,7 +234,7 @@ class _ServiceFormScreenState extends ConsumerState<ServiceFormScreen> {
                   final date = await showDatePicker(
                     context: context,
                     initialDate: _selectedDate ?? DateTime.now(),
-                    firstDate: DateTime.now().subtract(const Duration(days: 30)), // Allow slightly past dates for edits
+                    firstDate: DateTime.now().subtract(const Duration(days: 30)),
                     lastDate: DateTime.now().add(const Duration(days: 365 * 5)),
                   );
                   if (date != null) {

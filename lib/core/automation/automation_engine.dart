@@ -47,25 +47,43 @@ final automationEngineProvider = FutureProvider<void>((ref) async {
 
       // 3. Reprogramar la próxima fecha
       DateTime nextDate = service.nextDate;
-      switch (service.frequency) {
-        case 'monthly':
-          nextDate = DateTime(now.year, now.month + 1, service.nextDate.day);
-          break;
-        case 'weekly':
+      if (service.frequency == 'monthly') {
+        nextDate = DateTime(now.year, now.month + 1, service.nextDate.day);
+      } else if (service.frequency.startsWith('weekly')) {
+        if (service.frequency == 'weekly') {
           nextDate = now.add(const Duration(days: 7));
-          break;
-        case 'yearly':
-          nextDate = DateTime(now.year + 1, now.month, service.nextDate.day);
-          break;
-        case 'once':
-          // Desactivar el servicio si era de una sola vez
-          await servicesDao.updateService(
-            ServicesCompanion(
-              id: drift.Value(service.id),
-              isActive: const drift.Value(false),
-            ),
-          );
-          continue;
+        } else {
+          // Parse weekly:1,3,5
+          try {
+            final daysStr = service.frequency.split(':')[1];
+            final days = daysStr.split(',').map(int.parse).toList();
+            days.sort();
+            final currentDay = now.weekday;
+            int daysToAdd = 7;
+            for (int d in days) {
+              if (d > currentDay) {
+                daysToAdd = d - currentDay;
+                break;
+              }
+            }
+            if (daysToAdd == 7 && days.isNotEmpty) {
+              daysToAdd = (7 - currentDay) + days.first;
+            }
+            nextDate = now.add(Duration(days: daysToAdd));
+          } catch (e) {
+            nextDate = now.add(const Duration(days: 7));
+          }
+        }
+      } else if (service.frequency == 'yearly') {
+        nextDate = DateTime(now.year + 1, now.month, service.nextDate.day);
+      } else if (service.frequency == 'once') {
+        await servicesDao.updateService(
+          ServicesCompanion(
+            id: drift.Value(service.id),
+            isActive: const drift.Value(false),
+          ),
+        );
+        continue;
       }
 
       // 4. Actualizar el servicio

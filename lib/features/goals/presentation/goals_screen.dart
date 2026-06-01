@@ -5,6 +5,7 @@ import 'package:drift/drift.dart' as drift;
 import '../../../core/database/app_database.dart';
 import '../../../core/providers/database_provider.dart';
 import 'screens/goal_form_screen.dart';
+import 'screens/goal_add_funds_screen.dart';
 
 class GoalsScreen extends ConsumerWidget {
   const GoalsScreen({super.key});
@@ -66,29 +67,41 @@ class GoalsScreen extends ConsumerWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Expanded(
-                              child: Text(goal.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18), overflow: TextOverflow.ellipsis),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(goal.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18), overflow: TextOverflow.ellipsis),
+                                  if (goal.targetDate != null)
+                                    Padding(
+                                      padding: const EdgeInsets.only(top: 4),
+                                      child: Text('Límite: ${goal.targetDate!.day}/${goal.targetDate!.month}/${goal.targetDate!.year}', style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                                    ),
+                                ],
+                              ),
                             ),
-                            Row(
-                              children: [
-                                if (goal.targetDate != null)
-                                  Text('Límite: ${goal.targetDate!.day}/${goal.targetDate!.month}/${goal.targetDate!.year}', style: const TextStyle(fontSize: 12, color: Colors.grey)),
-                                IconButton(
-                                  icon: const Icon(Icons.edit, color: Colors.blue, size: 20),
-                                  onPressed: () {
-                                    Navigator.push(context, MaterialPageRoute(builder: (_) => GoalFormScreen(goal: goal)));
-                                  },
-                                ),
-                              ],
+                            IconButton(
+                              icon: const Icon(Icons.add_circle_outline, color: Colors.green),
+                              tooltip: 'Abonar a la meta',
+                              onPressed: () {
+                                Navigator.push(context, MaterialPageRoute(builder: (_) => GoalAddFundsScreen(goal: goal)));
+                              },
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.edit, color: Colors.blue),
+                              tooltip: 'Editar meta',
+                              onPressed: () {
+                                Navigator.push(context, MaterialPageRoute(builder: (_) => GoalFormScreen(goal: goal)));
+                              },
                             ),
                           ],
                         ),
-                        const SizedBox(height: 8),
+                        const SizedBox(height: 12),
                         LinearProgressIndicator(value: progress),
                         const SizedBox(height: 8),
-                        Text('\$${goal.currentAmount} / \$${goal.targetAmount}', style: const TextStyle(color: Colors.grey)),
+                        Text('\$${goal.currentAmount.toStringAsFixed(2)} / \$${goal.targetAmount.toStringAsFixed(2)}', style: const TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)),
                       ],
                     ),
                   ),

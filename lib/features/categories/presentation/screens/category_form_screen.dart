@@ -16,18 +16,37 @@ class CategoryFormScreen extends ConsumerStatefulWidget {
 
 class _CategoryFormScreenState extends ConsumerState<CategoryFormScreen> {
   late TextEditingController _nameController;
-  late String _selectedColor;
   late String _selectedIcon;
 
-  final List<String> _colors = ['#6C63FF', '#00D4AA', '#FF6B6B', '#FCA311', '#4D96FF', '#9D4EDD'];
-  final List<IconData> _icons = [Icons.shopping_cart, Icons.restaurant, Icons.local_gas_station, Icons.movie, Icons.medical_services, Icons.home];
+  // Icons: shopping_cart, restaurant, directions_bus (Autobús), movie, medical_services, home, church, flight
+  final List<IconData> _icons = [
+    Icons.shopping_cart, 
+    Icons.restaurant, 
+    Icons.directions_bus, 
+    Icons.movie, 
+    Icons.medical_services, 
+    Icons.home,
+    Icons.church,
+    Icons.flight,
+  ];
+
+  // Colors mapped to the index of the icon
+  final List<String> _iconColors = [
+    '#6C63FF', // shopping_cart
+    '#00D4AA', // restaurant
+    '#FF6B6B', // directions_bus
+    '#FCA311', // movie
+    '#4D96FF', // medical_services
+    '#9D4EDD', // home
+    '#795548', // church
+    '#00BCD4', // flight
+  ];
 
   @override
   void initState() {
     super.initState();
     _nameController = TextEditingController(text: widget.category?.name ?? '');
-    _selectedColor = widget.category?.color ?? '#6C63FF';
-    _selectedIcon = widget.category?.icon ?? '57680';
+    _selectedIcon = widget.category?.icon ?? _icons[0].codePoint.toString();
   }
 
   @override
@@ -43,18 +62,23 @@ class _CategoryFormScreenState extends ConsumerState<CategoryFormScreen> {
       return;
     }
 
+    // Assign color deterministically based on icon
+    int iconIndex = _icons.indexWhere((i) => i.codePoint.toString() == _selectedIcon);
+    if (iconIndex == -1) iconIndex = 0;
+    final determinedColor = _iconColors[iconIndex];
+
     final dao = ref.read(categoriesDaoProvider);
     if (widget.category == null) {
       await dao.createCategory(CategoriesCompanion.insert(
         id: const Uuid().v4(),
         name: name,
-        color: drift.Value(_selectedColor),
+        color: drift.Value(determinedColor),
         icon: drift.Value(_selectedIcon),
       ));
     } else {
       await dao.updateCategory(widget.category!.copyWith(
         name: name,
-        color: _selectedColor,
+        color: determinedColor,
         icon: _selectedIcon,
       ));
     }
@@ -78,54 +102,32 @@ class _CategoryFormScreenState extends ConsumerState<CategoryFormScreen> {
                 decoration: const InputDecoration(labelText: 'Nombre'),
               ),
               const SizedBox(height: 24),
-              const Text('Color:', style: TextStyle(fontSize: 14, color: Colors.grey, fontWeight: FontWeight.w500)),
+              const Text('Icono (El color se asignará automáticamente):', style: TextStyle(fontSize: 14, color: Colors.grey, fontWeight: FontWeight.w500)),
               const SizedBox(height: 12),
               Wrap(
                 spacing: 12,
                 runSpacing: 12,
-                children: _colors.map((c) => GestureDetector(
-                  onTap: () => setState(() => _selectedColor = c),
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 200),
-                    padding: const EdgeInsets.all(2),
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: _selectedColor == c ? Color(int.parse(c.replaceAll('#', '0xFF'))) : Colors.transparent,
-                        width: 2,
-                      ),
-                    ),
-                    child: CircleAvatar(
-                      backgroundColor: Color(int.parse(c.replaceAll('#', '0xFF'))),
-                      radius: 20,
-                      child: _selectedColor == c ? const Icon(Icons.check, color: Colors.white, size: 20) : null,
-                    ),
-                  ),
-                )).toList(),
-              ),
-              const SizedBox(height: 24),
-              const Text('Icono:', style: TextStyle(fontSize: 14, color: Colors.grey, fontWeight: FontWeight.w500)),
-              const SizedBox(height: 12),
-              Wrap(
-                spacing: 12,
-                runSpacing: 12,
-                children: _icons.map((i) {
+                children: _icons.asMap().entries.map((entry) {
+                  final i = entry.value;
+                  final index = entry.key;
                   final iCode = i.codePoint.toString();
                   final isSelected = _selectedIcon == iCode;
+                  final iconColor = Color(int.parse(_iconColors[index].replaceAll('#', '0xFF')));
+                  
                   return GestureDetector(
                     onTap: () => setState(() => _selectedIcon = iCode),
                     child: AnimatedContainer(
                       duration: const Duration(milliseconds: 200),
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: isSelected ? Theme.of(context).colorScheme.primaryContainer : Colors.transparent,
+                        color: isSelected ? iconColor.withValues(alpha: 0.2) : Colors.transparent,
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
-                          color: isSelected ? Theme.of(context).colorScheme.primary : Colors.grey.withValues(alpha: 0.3),
+                          color: isSelected ? iconColor : Colors.grey.withValues(alpha: 0.3),
                           width: 2,
                         ),
                       ),
-                      child: Icon(i, color: isSelected ? Theme.of(context).colorScheme.primary : Colors.black87),
+                      child: Icon(i, color: isSelected ? iconColor : Colors.black87),
                     ),
                   );
                 }).toList(),

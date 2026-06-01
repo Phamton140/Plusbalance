@@ -80,20 +80,28 @@ class ServicesScreen extends ConsumerWidget {
                     subtitle: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('${service.frequency.toUpperCase()} - Próximo cobro: ${service.nextDate.day}/${service.nextDate.month}/${service.nextDate.year}', style: const TextStyle(fontSize: 10, color: Colors.grey)),
-                        if (service.label != 'none')
-                          Container(
-                            margin: const EdgeInsets.only(top: 4),
-                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                            decoration: BoxDecoration(
-                              color: isNeed ? Colors.blue.withValues(alpha: 0.2) : Colors.orange.withValues(alpha: 0.2),
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                            child: Text(
-                              isNeed ? 'Lo Necesito' : 'Lo Quiero',
-                              style: TextStyle(fontSize: 10, color: isNeed ? Colors.blue : Colors.orange),
-                            ),
+                        Builder(
+                          builder: (context) {
+                            String freqText = service.frequency.toUpperCase();
+                            if (service.frequency.startsWith('weekly:')) {
+                              final days = service.frequency.split(':')[1].split(',');
+                              freqText = 'SEMANAL (Días: ${days.join(', ')})';
+                            }
+                            return Text('$freqText - Próximo cobro: ${service.nextDate.day}/${service.nextDate.month}/${service.nextDate.year}', style: const TextStyle(fontSize: 10, color: Colors.grey));
+                          }
+                        ),
+                        Container(
+                          margin: const EdgeInsets.only(top: 4),
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: isNeed ? Colors.blue.withValues(alpha: 0.2) : Colors.orange.withValues(alpha: 0.2),
+                            borderRadius: BorderRadius.circular(4),
                           ),
+                          child: Text(
+                            isNeed ? 'Lo Necesito' : 'Lo Quiero',
+                            style: TextStyle(fontSize: 10, color: isNeed ? Colors.blue : Colors.orange),
+                          ),
+                        ),
                       ],
                     ),
                     trailing: Column(
