@@ -5,6 +5,17 @@ import 'package:intl/intl.dart';
 import '../../../../core/database/app_database.dart';
 
 class PdfService {
+  static const _meses = [
+    'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
+    'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'
+  ];
+
+  static String _formatFechaLarga(DateTime d) {
+    final hh = d.hour.toString().padLeft(2, '0');
+    final mm = d.minute.toString().padLeft(2, '0');
+    return '${d.day} de ${_meses[d.month - 1]} de ${d.year} a las $hh:$mm';
+  }
+
   static Future<void> generateAndPrintTransactionsReport({
     required List<Transaction> transactions,
     required List<Account> accounts,
@@ -15,8 +26,17 @@ class PdfService {
   }) async {
     final pdf = pw.Document();
 
-    final fontRegular = await PdfGoogleFonts.robotoRegular();
-    final fontBold = await PdfGoogleFonts.robotoBold();
+    // Cargamos las fuentes. Si no hay red, caemos a las fuentes por defecto
+    // del paquete `pdf` (Helvetica/Times) para no romper la generación.
+    pw.Font? fontRegular;
+    pw.Font? fontBold;
+    try {
+      fontRegular = await PdfGoogleFonts.robotoRegular();
+      fontBold = await PdfGoogleFonts.robotoBold();
+    } catch (_) {
+      fontRegular = null;
+      fontBold = null;
+    }
 
     double totalIngresos = 0;
     double totalGastos = 0;
@@ -29,7 +49,6 @@ class PdfService {
     final balanceNeto = totalIngresos - totalGastos;
 
     final DateFormat dateFormatter = DateFormat('dd/MM/yyyy');
-    final DateFormat dateTimeFormatter = DateFormat("dd 'de' MMMM 'de' yyyy 'a las' HH:mm", 'es');
     final String periodText = (startDate != null && endDate != null)
         ? 'Periodo: del ${dateFormatter.format(startDate)} al ${dateFormatter.format(endDate)}'
         : 'Periodo: Histórico completo';
@@ -96,10 +115,9 @@ class PdfService {
       pw.MultiPage(
         pageFormat: PdfPageFormat.a4,
         margin: const pw.EdgeInsets.all(32),
-        theme: pw.ThemeData.withFont(
-          base: fontRegular,
-          bold: fontBold,
-        ),
+        theme: (fontRegular != null && fontBold != null)
+            ? pw.ThemeData.withFont(base: fontRegular, bold: fontBold)
+            : null,
         header: (context) {
           return pw.Column(
             crossAxisAlignment: pw.CrossAxisAlignment.start,
@@ -150,7 +168,7 @@ class PdfService {
                 ],
               ),
               pw.SizedBox(height: 4),
-              pw.Text('Generado el ${dateTimeFormatter.format(DateTime.now())}',
+              pw.Text('Generado el ${_formatFechaLarga(DateTime.now())}',
                   style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey600)),
               pw.Text(periodText,
                   style: const pw.TextStyle(fontSize: 12, color: PdfColors.grey600)),

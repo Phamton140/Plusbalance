@@ -45,40 +45,53 @@ class TransactionsListScreen extends ConsumerWidget {
                 confirmText: 'GENERAR',
               );
 
-              // Obtain data
-              final db = ref.read(databaseProvider);
-              List<Transaction> txs;
-              if (pickedRange != null) {
-                // El selector devuelve el final con hora 00:00, lo extendemos
-                // al final del día para que las transacciones del último día
-                // seleccionado sí se incluyan.
-                final endOfDay = DateTime(
-                  pickedRange.end.year,
-                  pickedRange.end.month,
-                  pickedRange.end.day,
-                  23, 59, 59, 999,
-                );
-                txs = await (db.select(db.transactions)
-                  ..where((t) => t.date.isBetweenValues(pickedRange.start, endOfDay))
-                  ..orderBy([(t) => drift.OrderingTerm(expression: t.date, mode: drift.OrderingMode.desc)])
-                ).get();
-              } else {
-                txs = await (db.select(db.transactions)
-                  ..orderBy([(t) => drift.OrderingTerm(expression: t.date, mode: drift.OrderingMode.desc)])
-                ).get();
-              }
-              final accounts = await db.select(db.accounts).get();
-              final categories = await db.select(db.categories).get();
-              final userName = await ref.read(settingsDaoProvider).getSetting('profile_username');
+              try {
+                // Obtain data
+                final db = ref.read(databaseProvider);
+                List<Transaction> txs;
+                if (pickedRange != null) {
+                  // El selector devuelve el final con hora 00:00, lo extendemos
+                  // al final del día para que las transacciones del último día
+                  // seleccionado sí se incluyan.
+                  final endOfDay = DateTime(
+                    pickedRange.end.year,
+                    pickedRange.end.month,
+                    pickedRange.end.day,
+                    23, 59, 59, 999,
+                  );
+                  txs = await (db.select(db.transactions)
+                    ..where((t) => t.date.isBetweenValues(pickedRange.start, endOfDay))
+                    ..orderBy([(t) => drift.OrderingTerm(expression: t.date, mode: drift.OrderingMode.desc)])
+                  ).get();
+                } else {
+                  txs = await (db.select(db.transactions)
+                    ..orderBy([(t) => drift.OrderingTerm(expression: t.date, mode: drift.OrderingMode.desc)])
+                  ).get();
+                }
+                final accounts = await db.select(db.accounts).get();
+                final categories = await db.select(db.categories).get();
+                final userName = await ref.read(settingsDaoProvider).getSetting('profile_username');
 
-              await PdfService.generateAndPrintTransactionsReport(
-                transactions: txs,
-                accounts: accounts,
-                categories: categories,
-                startDate: pickedRange?.start,
-                endDate: pickedRange?.end,
-                userName: userName,
-              );
+                await PdfService.generateAndPrintTransactionsReport(
+                  transactions: txs,
+                  accounts: accounts,
+                  categories: categories,
+                  startDate: pickedRange?.start,
+                  endDate: pickedRange?.end,
+                  userName: userName,
+                );
+              } catch (e, st) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('No se pudo generar el PDF: $e'),
+                      duration: const Duration(seconds: 6),
+                    ),
+                  );
+                }
+                // ignore: avoid_print
+                debugPrint('PDF error: $e\n$st');
+              }
             },
           )
         ],
