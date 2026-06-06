@@ -176,11 +176,15 @@ class NotificationsScreen extends ConsumerWidget {
                         final freq = kRechargeFrequencyLabels[
                                 r.account.rechargeFrequency] ??
                             r.account.rechargeFrequency;
+                        final isBiweekly =
+                            r.account.rechargeFrequency == 'biweekly';
+                        final installmentLabel =
+                            isBiweekly ? ' (${r.installment}da)' : '';
                         final concept = r.account.rechargeLabel?.isNotEmpty == true
                             ? ' · ${r.account.rechargeLabel}'
                             : '';
-                        final amount = r.account.rechargeAmount != null
-                            ? ' ~ \$${r.account.rechargeAmount!.toStringAsFixed(0)}'
+                        final amount = r.amount != null
+                            ? ' ~ \$${r.amount!.toStringAsFixed(0)}'
                             : '';
 
                         return Container(
@@ -203,7 +207,7 @@ class NotificationsScreen extends ConsumerWidget {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
-                                      'Recarga a ${r.account.name}',
+                                      'Recarga a ${r.account.name}$installmentLabel',
                                       style: TextStyle(
                                           color: color,
                                           fontWeight: FontWeight.bold,

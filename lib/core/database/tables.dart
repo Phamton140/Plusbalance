@@ -33,6 +33,12 @@ class Accounts extends Table with AuditMixin {
   // Etiqueta o concepto (opcional, ej. "Salario", "Mesada").
   TextColumn get rechargeLabel => text().nullable()();
 
+  // --- Segunda recarga (usada sólo cuando frequency = 'biweekly') ---
+  // Fecha de la segunda acreditación del mes.
+  DateTimeColumn get rechargeNextDate2 => dateTime().nullable()();
+  // Monto esperado de la segunda recarga (opcional, sólo informativo).
+  RealColumn get rechargeAmount2 => real().nullable()();
+
   @override
   Set<Column> get primaryKey => {id};
 }

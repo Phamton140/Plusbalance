@@ -180,21 +180,42 @@ class _AccountCard extends ConsumerWidget {
   String _rechargeFooterText(Account a) {
     final freq = a.rechargeFrequency;
     final label = kRechargeFrequencyLabels[freq] ?? freq ?? '';
-    final concept = a.rechargeLabel?.isNotEmpty == true ? ' · ${a.rechargeLabel}' : '';
-    final next = a.rechargeNextDate;
-    if (next == null) return 'Recarga $label$concept';
-    final today = DateTime.now();
-    final days = next.difference(DateTime(today.year, today.month, today.day)).inDays;
-    String when;
-    if (days < 0) when = 'vencida (${-days}d)';
-    else if (days == 0) when = 'hoy';
-    else if (days == 1) when = 'mañana';
-    else if (days <= 7) when = 'en ${days}d';
-    else when = '${next.day}/${next.month}';
-    if (a.rechargeAmount != null) {
-      return 'Recarga $label$concept · \$${a.rechargeAmount!.toStringAsFixed(0)} $when';
+    final concept =
+        a.rechargeLabel?.isNotEmpty == true ? ' · ${a.rechargeLabel}' : '';
+    final isBiweekly = freq == 'biweekly';
+
+    String formatSlot(DateTime? next, double? amount, String slotLabel) {
+      if (next == null) return '';
+      final today = DateTime.now();
+      final days = next
+          .difference(DateTime(today.year, today.month, today.day))
+          .inDays;
+      String when;
+      if (days < 0) {
+        when = 'vencida (${-days}d)';
+      } else if (days == 0) {
+        when = 'hoy';
+      } else if (days == 1) {
+        when = 'mañana';
+      } else if (days <= 7) {
+        when = 'en ${days}d';
+      } else {
+        when = '${next.day}/${next.month}';
+      }
+      final money = amount != null ? ' \$${amount.toStringAsFixed(0)}' : '';
+      final slot = isBiweekly ? '$slotLabel ' : '';
+      return '· $slot$when$money';
     }
-    return 'Recarga $label$concept · $when';
+
+    final slot1 = formatSlot(a.rechargeNextDate, a.rechargeAmount, '1ra');
+    final slot2 = isBiweekly
+        ? formatSlot(a.rechargeNextDate2, a.rechargeAmount2, '2da')
+        : '';
+
+    if (a.rechargeNextDate == null && (a.rechargeNextDate2 == null || !isBiweekly)) {
+      return 'Recarga $label$concept';
+    }
+    return 'Recarga $label$concept $slot1 $slot2'.trim();
   }
 
   void _showOptions(BuildContext context, WidgetRef ref, Account account, bool isDefault) {

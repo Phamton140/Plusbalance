@@ -6,15 +6,20 @@ class AccountRecharge {
   final Account account;
   final DateTime nextDate;
   final int daysFromNow; // negativo = atrasado
+  final int installment; // 1, 2... (1ra, 2da quincena, etc.)
+  final double? amount;
+
   const AccountRecharge({
     required this.account,
     required this.nextDate,
     required this.daysFromNow,
+    required this.installment,
+    this.amount,
   });
 }
 
-/// Devuelve la lista de cuentas con recarga configurada cuya próxima
-/// fecha está dentro de los próximos 7 días (o ya vencida).
+/// Devuelve la lista de recargas próximas (≤7 días o vencidas).
+/// Para cuentas quincenales emite DOS entradas (1ra y 2da fecha).
 final upcomingAccountRechargesProvider =
     StreamProvider<List<AccountRecharge>>((ref) {
   return ref.watch(accountsDaoProvider).watchActiveAccounts().map((accounts) {
@@ -26,15 +31,24 @@ final upcomingAccountRechargesProvider =
     for (final a in accounts) {
       final f = a.rechargeFrequency;
       if (f == null || f.isEmpty || f == 'none') continue;
-      final next = a.rechargeNextDate;
-      if (next == null) continue;
-      final nd = DateTime(next.year, next.month, next.day);
-      if (nd.isAfter(horizon)) continue;
-      result.add(AccountRecharge(
-        account: a,
-        nextDate: nd,
-        daysFromNow: nd.difference(today).inDays,
-      ));
+
+      void add(DateTime? next, int installment, double? amount) {
+        if (next == null) return;
+        final nd = DateTime(next.year, next.month, next.day);
+        if (nd.isAfter(horizon)) return;
+        result.add(AccountRecharge(
+          account: a,
+          nextDate: nd,
+          daysFromNow: nd.difference(today).inDays,
+          installment: installment,
+          amount: amount,
+        ));
+      }
+
+      add(a.rechargeNextDate, 1, a.rechargeAmount);
+      if (f == 'biweekly') {
+        add(a.rechargeNextDate2, 2, a.rechargeAmount2);
+      }
     }
     result.sort((x, y) => x.nextDate.compareTo(y.nextDate));
     return result;

@@ -20,10 +20,12 @@ class _AccountFormScreenState extends ConsumerState<AccountFormScreen> {
   late TextEditingController _bankController;
   late TextEditingController _balanceController;
   late TextEditingController _rechargeAmountController;
+  late TextEditingController _rechargeAmountController2;
   late TextEditingController _rechargeLabelController;
   late String _selectedColor;
   late String _rechargeFrequency;
   DateTime? _rechargeNextDate;
+  DateTime? _rechargeNextDate2;
 
   @override
   void initState() {
@@ -34,11 +36,14 @@ class _AccountFormScreenState extends ConsumerState<AccountFormScreen> {
         TextEditingController(text: widget.account?.balance.toString() ?? '');
     _rechargeAmountController = TextEditingController(
         text: widget.account?.rechargeAmount?.toString() ?? '');
+    _rechargeAmountController2 = TextEditingController(
+        text: widget.account?.rechargeAmount2?.toString() ?? '');
     _rechargeLabelController =
         TextEditingController(text: widget.account?.rechargeLabel ?? '');
     _selectedColor = widget.account?.color ?? '#1a1a2e';
     _rechargeFrequency = widget.account?.rechargeFrequency ?? 'none';
     _rechargeNextDate = widget.account?.rechargeNextDate;
+    _rechargeNextDate2 = widget.account?.rechargeNextDate2;
   }
 
   @override
@@ -47,6 +52,7 @@ class _AccountFormScreenState extends ConsumerState<AccountFormScreen> {
     _bankController.dispose();
     _balanceController.dispose();
     _rechargeAmountController.dispose();
+    _rechargeAmountController2.dispose();
     _rechargeLabelController.dispose();
     super.dispose();
   }
@@ -55,7 +61,10 @@ class _AccountFormScreenState extends ConsumerState<AccountFormScreen> {
   /// próxima ocurrencia a partir de hoy.
   void _ensureDefaultNextDate() {
     if (_rechargeFrequency == 'none') {
-      setState(() => _rechargeNextDate = null);
+      setState(() {
+        _rechargeNextDate = null;
+        _rechargeNextDate2 = null;
+      });
       return;
     }
     if (_rechargeNextDate != null) return;
@@ -74,7 +83,13 @@ class _AccountFormScreenState extends ConsumerState<AccountFormScreen> {
       default:
         return;
     }
-    setState(() => _rechargeNextDate = candidate);
+    setState(() {
+      _rechargeNextDate = candidate;
+      // Para quincenal, sugerir la segunda fecha 14 días después.
+      if (_rechargeFrequency == 'biweekly') {
+        _rechargeNextDate2 = candidate.add(const Duration(days: 14));
+      }
+    });
   }
 
   Future<void> _save() async {
@@ -82,6 +97,7 @@ class _AccountFormScreenState extends ConsumerState<AccountFormScreen> {
     final bank = _bankController.text.trim();
     final balance = double.tryParse(_balanceController.text) ?? 0.0;
     final rechargeAmount = double.tryParse(_rechargeAmountController.text);
+    final rechargeAmount2 = double.tryParse(_rechargeAmountController2.text);
 
     if (name.isEmpty) {
       ScaffoldMessenger.of(context)
@@ -89,11 +105,28 @@ class _AccountFormScreenState extends ConsumerState<AccountFormScreen> {
       return;
     }
 
+    final isBiweekly = _rechargeFrequency == 'biweekly';
     final frequencyToSave =
         _rechargeFrequency == 'none' ? null : _rechargeFrequency;
     final rechargeLabel = _rechargeLabelController.text.trim().isEmpty
         ? null
         : _rechargeLabelController.text.trim();
+
+    // Para quincenal, exigir AMBAS fechas; para otras, sólo la primera.
+    if (frequencyToSave != null) {
+      if (isBiweekly) {
+        if (_rechargeNextDate == null || _rechargeNextDate2 == null) {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+              content: Text(
+                  'Quincenal requiere las dos fechas de pago del mes')));
+          return;
+        }
+      } else if (_rechargeNextDate == null) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text('Indica la próxima fecha de recarga')));
+        return;
+      }
+    }
 
     if (widget.account == null) {
       await ref.read(accountsDaoProvider).createAccount(
@@ -108,6 +141,8 @@ class _AccountFormScreenState extends ConsumerState<AccountFormScreen> {
           rechargeNextDate: drift.Value(_rechargeNextDate),
           rechargeAmount: drift.Value(rechargeAmount),
           rechargeLabel: drift.Value(rechargeLabel),
+          rechargeNextDate2: drift.Value(isBiweekly ? _rechargeNextDate2 : null),
+          rechargeAmount2: drift.Value(isBiweekly ? rechargeAmount2 : null),
         ),
       );
     } else {
@@ -131,6 +166,8 @@ class _AccountFormScreenState extends ConsumerState<AccountFormScreen> {
           rechargeNextDate: _rechargeNextDate,
           rechargeAmount: rechargeAmount,
           rechargeLabel: rechargeLabel,
+          rechargeNextDate2: isBiweekly ? _rechargeNextDate2 : null,
+          rechargeAmount2: isBiweekly ? rechargeAmount2 : null,
         ),
       );
     }
@@ -251,6 +288,12 @@ class _AccountFormScreenState extends ConsumerState<AccountFormScreen> {
                     _rechargeFrequency = val;
                     if (val == 'none') {
                       _rechargeNextDate = null;
+                      _rechargeNextDate2 = null;
+                    } else if (val != 'biweekly') {
+                      // Si cambia de quincenal a otra, limpiamos la 2da.
+                      _rechargeNextDate2 = null;
+                      _rechargeAmountController2.clear();
+                      _ensureDefaultNextDate();
                     } else {
                       _ensureDefaultNextDate();
                     }
@@ -259,52 +302,172 @@ class _AccountFormScreenState extends ConsumerState<AccountFormScreen> {
               ),
               if (hasRecharge) ...[
                 const SizedBox(height: 16),
-                ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  title: const Text('Próxima fecha de recarga'),
-                  subtitle: Text(
-                    _rechargeNextDate == null
-                        ? 'Toca para elegir'
-                        : '${_rechargeNextDate!.day}/${_rechargeNextDate!.month}/${_rechargeNextDate!.year}',
+                if (_rechargeFrequency == 'biweekly') ...[
+                  const Text(
+                    'Selecciona las DOS fechas de pago del mes',
                     style: TextStyle(
-                      color: _rechargeNextDate == null
-                          ? Colors.grey
-                          : Theme.of(context).colorScheme.primary,
-                      fontWeight: FontWeight.w600,
+                        fontSize: 12,
+                        color: Colors.teal,
+                        fontWeight: FontWeight.w600),
+                  ),
+                  const SizedBox(height: 8),
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: const Icon(Icons.calendar_today, color: Colors.teal),
+                    title: const Text('1ra fecha de pago'),
+                    subtitle: Text(
+                      _rechargeNextDate == null
+                          ? 'Toca para elegir'
+                          : '${_rechargeNextDate!.day}/${_rechargeNextDate!.month}/${_rechargeNextDate!.year}',
+                      style: TextStyle(
+                        color: _rechargeNextDate == null
+                            ? Colors.grey
+                            : Theme.of(context).colorScheme.primary,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    onTap: () async {
+                      final picked = await showDatePicker(
+                        context: context,
+                        initialDate: _rechargeNextDate ?? DateTime.now(),
+                        firstDate: DateTime.now()
+                            .subtract(const Duration(days: 30)),
+                        lastDate: DateTime.now()
+                            .add(const Duration(days: 365 * 5)),
+                      );
+                      if (picked != null) {
+                        setState(() {
+                          _rechargeNextDate = picked;
+                          // Si aún no se ha elegido la 2da, sugerir +14d.
+                          if (_rechargeNextDate2 == null) {
+                            _rechargeNextDate2 =
+                                picked.add(const Duration(days: 14));
+                          }
+                        });
+                      }
+                    },
+                  ),
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: const Icon(Icons.calendar_today, color: Colors.teal),
+                    title: const Text('2da fecha de pago'),
+                    subtitle: Text(
+                      _rechargeNextDate2 == null
+                          ? 'Toca para elegir'
+                          : '${_rechargeNextDate2!.day}/${_rechargeNextDate2!.month}/${_rechargeNextDate2!.year}',
+                      style: TextStyle(
+                        color: _rechargeNextDate2 == null
+                            ? Colors.grey
+                            : Theme.of(context).colorScheme.primary,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    onTap: () async {
+                      final picked = await showDatePicker(
+                        context: context,
+                        initialDate: _rechargeNextDate2 ??
+                            (_rechargeNextDate ?? DateTime.now())
+                                .add(const Duration(days: 14)),
+                        firstDate: DateTime.now()
+                            .subtract(const Duration(days: 30)),
+                        lastDate: DateTime.now()
+                            .add(const Duration(days: 365 * 5)),
+                      );
+                      if (picked != null) {
+                        setState(() => _rechargeNextDate2 = picked);
+                      }
+                    },
+                  ),
+                  const SizedBox(height: 8),
+                  TextField(
+                    enableSuggestions: false,
+                    autocorrect: false,
+                    controller: _rechargeLabelController,
+                    decoration: const InputDecoration(
+                      labelText: 'Concepto (Ej. Salario)',
+                      border: OutlineInputBorder(),
                     ),
                   ),
-                  trailing: const Icon(Icons.calendar_today),
-                  onTap: () async {
-                    final picked = await showDatePicker(
-                      context: context,
-                      initialDate: _rechargeNextDate ?? DateTime.now(),
-                      firstDate:
-                          DateTime.now().subtract(const Duration(days: 30)),
-                      lastDate: DateTime.now().add(const Duration(days: 365 * 5)),
-                    );
-                    if (picked != null) {
-                      setState(() => _rechargeNextDate = picked);
-                    }
-                  },
-                ),
-                const SizedBox(height: 8),
-                TextField(enableSuggestions: false, autocorrect: false,
-                  controller: _rechargeLabelController,
-                  decoration: const InputDecoration(
-                    labelText: 'Concepto (Ej. Salario)',
-                    border: OutlineInputBorder(),
+                  const SizedBox(height: 12),
+                  TextField(
+                    enableSuggestions: false,
+                    autocorrect: false,
+                    controller: _rechargeAmountController,
+                    keyboardType:
+                        const TextInputType.numberWithOptions(decimal: true),
+                    decoration: const InputDecoration(
+                      labelText: 'Monto 1ra recarga (opcional)',
+                      prefixText: '\$ ',
+                      border: OutlineInputBorder(),
+                    ),
                   ),
-                ),
-                const SizedBox(height: 12),
-                TextField(enableSuggestions: false, autocorrect: false,
-                  controller: _rechargeAmountController,
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                  decoration: const InputDecoration(
-                    labelText: 'Monto esperado (opcional)',
-                    prefixText: '\$ ',
-                    border: OutlineInputBorder(),
+                  const SizedBox(height: 12),
+                  TextField(
+                    enableSuggestions: false,
+                    autocorrect: false,
+                    controller: _rechargeAmountController2,
+                    keyboardType:
+                        const TextInputType.numberWithOptions(decimal: true),
+                    decoration: const InputDecoration(
+                      labelText: 'Monto 2da recarga (opcional)',
+                      prefixText: '\$ ',
+                      border: OutlineInputBorder(),
+                    ),
                   ),
-                ),
+                ] else ...[
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: const Text('Próxima fecha de recarga'),
+                    subtitle: Text(
+                      _rechargeNextDate == null
+                          ? 'Toca para elegir'
+                          : '${_rechargeNextDate!.day}/${_rechargeNextDate!.month}/${_rechargeNextDate!.year}',
+                      style: TextStyle(
+                        color: _rechargeNextDate == null
+                            ? Colors.grey
+                            : Theme.of(context).colorScheme.primary,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    trailing: const Icon(Icons.calendar_today),
+                    onTap: () async {
+                      final picked = await showDatePicker(
+                        context: context,
+                        initialDate: _rechargeNextDate ?? DateTime.now(),
+                        firstDate: DateTime.now()
+                            .subtract(const Duration(days: 30)),
+                        lastDate:
+                            DateTime.now().add(const Duration(days: 365 * 5)),
+                      );
+                      if (picked != null) {
+                        setState(() => _rechargeNextDate = picked);
+                      }
+                    },
+                  ),
+                  const SizedBox(height: 8),
+                  TextField(
+                    enableSuggestions: false,
+                    autocorrect: false,
+                    controller: _rechargeLabelController,
+                    decoration: const InputDecoration(
+                      labelText: 'Concepto (Ej. Salario)',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    enableSuggestions: false,
+                    autocorrect: false,
+                    controller: _rechargeAmountController,
+                    keyboardType:
+                        const TextInputType.numberWithOptions(decimal: true),
+                    decoration: const InputDecoration(
+                      labelText: 'Monto esperado (opcional)',
+                      prefixText: '\$ ',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                ],
               ],
               const SizedBox(height: 48),
               SizedBox(
