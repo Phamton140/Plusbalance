@@ -126,6 +126,19 @@ class _AccountFormScreenState extends ConsumerState<AccountFormScreen> {
             content: Text('Indica la próxima fecha de recarga')));
         return;
       }
+      final tomorrow = DateTime.now().add(const Duration(days: 1));
+      bool isPast(DateTime? d) {
+        if (d == null) return false;
+        final dd = DateTime(d.year, d.month, d.day);
+        final t = DateTime(tomorrow.year, tomorrow.month, tomorrow.day);
+        return dd.isBefore(t);
+      }
+
+      if (isPast(_rechargeNextDate) || (isBiweekly && isPast(_rechargeNextDate2))) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text('Las fechas de recarga deben ser futuras')));
+        return;
+      }
     }
 
     if (widget.account == null) {
@@ -327,13 +340,16 @@ class _AccountFormScreenState extends ConsumerState<AccountFormScreen> {
                       ),
                     ),
                     onTap: () async {
+                      final tomorrow = DateTime.now().add(const Duration(days: 1));
                       final picked = await showDatePicker(
                         context: context,
-                        initialDate: _rechargeNextDate ?? DateTime.now(),
-                        firstDate: DateTime.now()
-                            .subtract(const Duration(days: 30)),
+                        initialDate: _rechargeNextDate != null && _rechargeNextDate!.isAfter(tomorrow)
+                            ? _rechargeNextDate!
+                            : tomorrow,
+                        firstDate: tomorrow,
                         lastDate: DateTime.now()
                             .add(const Duration(days: 365 * 5)),
+                        helpText: 'Selecciona una fecha futura',
                       );
                       if (picked != null) {
                         setState(() {
@@ -363,15 +379,17 @@ class _AccountFormScreenState extends ConsumerState<AccountFormScreen> {
                       ),
                     ),
                     onTap: () async {
+                      final tomorrow = DateTime.now().add(const Duration(days: 1));
+                      final defaultInit = _rechargeNextDate2 ??
+                          (_rechargeNextDate ?? DateTime.now())
+                              .add(const Duration(days: 14));
                       final picked = await showDatePicker(
                         context: context,
-                        initialDate: _rechargeNextDate2 ??
-                            (_rechargeNextDate ?? DateTime.now())
-                                .add(const Duration(days: 14)),
-                        firstDate: DateTime.now()
-                            .subtract(const Duration(days: 30)),
+                        initialDate: defaultInit.isAfter(tomorrow) ? defaultInit : tomorrow,
+                        firstDate: tomorrow,
                         lastDate: DateTime.now()
                             .add(const Duration(days: 365 * 5)),
+                        helpText: 'Selecciona una fecha futura',
                       );
                       if (picked != null) {
                         setState(() => _rechargeNextDate2 = picked);
@@ -431,13 +449,16 @@ class _AccountFormScreenState extends ConsumerState<AccountFormScreen> {
                     ),
                     trailing: const Icon(Icons.calendar_today),
                     onTap: () async {
+                      final tomorrow = DateTime.now().add(const Duration(days: 1));
                       final picked = await showDatePicker(
                         context: context,
-                        initialDate: _rechargeNextDate ?? DateTime.now(),
-                        firstDate: DateTime.now()
-                            .subtract(const Duration(days: 30)),
+                        initialDate: _rechargeNextDate != null && _rechargeNextDate!.isAfter(tomorrow)
+                            ? _rechargeNextDate!
+                            : tomorrow,
+                        firstDate: tomorrow,
                         lastDate:
                             DateTime.now().add(const Duration(days: 365 * 5)),
+                        helpText: 'Selecciona una fecha futura',
                       );
                       if (picked != null) {
                         setState(() => _rechargeNextDate = picked);

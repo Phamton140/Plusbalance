@@ -99,7 +99,21 @@ class GoalsScreen extends ConsumerWidget {
                           ],
                         ),
                         const SizedBox(height: 12),
-                        LinearProgressIndicator(value: progress),
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: LinearProgressIndicator(
+                            value: progress.clamp(0.0, 1.0),
+                            minHeight: 10,
+                            backgroundColor: Colors.grey.shade300,
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              Color.lerp(
+                                Colors.grey.shade500,
+                                Colors.green,
+                                progress.clamp(0.0, 1.0),
+                              )!,
+                            ),
+                          ),
+                        ),
                         const SizedBox(height: 8),
                         Text('\$${goal.currentAmount.toStringAsFixed(2)} / \$${goal.targetAmount.toStringAsFixed(2)}', style: const TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)),
                       ],

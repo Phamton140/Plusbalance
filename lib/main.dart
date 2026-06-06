@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'core/theme/app_theme.dart';
@@ -8,6 +9,15 @@ import 'features/auth/providers/auth_providers.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Captura cualquier error no manejado y lo muestra en consola con
+  // contexto (útil para depurar fallos silenciosos como el de
+  // flutter_secure_storage que no propagan al UI).
+  FlutterError.onError = (details) {
+    FlutterError.presentError(details);
+    debugPrint('UNCAUGHT: ${details.exceptionAsString()}');
+  };
+
   runApp(
     const ProviderScope(
       child: PlusBalanceApp(),

@@ -77,6 +77,7 @@ class _PinScreenState extends ConsumerState<PinScreen> {
     try {
       switch (_stage) {
         case _Stage.setupNew:
+        case _Stage.setupNew:
           setState(() {
             _firstEntry = pin;
             _stage = _Stage.setupConfirm;
@@ -163,6 +164,13 @@ class _PinScreenState extends ConsumerState<PinScreen> {
             });
           }
           break;
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _pin = '';
+          _errorText = 'Error al guardar el PIN. Reintenta.';
+        });
       }
     } finally {
       if (mounted) setState(() => _busy = false);

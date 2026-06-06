@@ -26,7 +26,12 @@ class PinService {
   }
 
   Future<void> setPin(String pin) async {
-    await _storage.write(key: _pinKey, value: pin);
+    try {
+      await _storage.write(key: _pinKey, value: pin);
+    } catch (e, st) {
+      debugPrint('PinService.setPin error: $e\n$st');
+      rethrow;
+    }
   }
 
   Future<bool> verifyPin(String pin) async {

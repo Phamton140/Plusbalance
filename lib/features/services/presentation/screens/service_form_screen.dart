@@ -72,9 +72,18 @@ class _ServiceFormScreenState extends ConsumerState<ServiceFormScreen> {
   Future<void> _save() async {
     final name = _nameController.text.trim();
     final amount = double.tryParse(_amountController.text) ?? 0.0;
-    
+
     if (name.isEmpty || amount <= 0 || _selectedDate == null || _selectedAccountId == null) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Completa todos los campos, la fecha y la cuenta')));
+      return;
+    }
+
+    final tomorrow = DateTime.now().add(const Duration(days: 1));
+    final selectedDay = DateTime(_selectedDate!.year, _selectedDate!.month, _selectedDate!.day);
+    final tomorrowDay = DateTime(tomorrow.year, tomorrow.month, tomorrow.day);
+    if (selectedDay.isBefore(tomorrowDay)) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('La fecha debe ser futura (no se permiten hoy ni fechas pasadas)')));
       return;
     }
 
@@ -266,11 +275,15 @@ class _ServiceFormScreenState extends ConsumerState<ServiceFormScreen> {
                 ),
                 trailing: const Icon(Icons.calendar_today),
                 onTap: () async {
+                  final tomorrow = DateTime.now().add(const Duration(days: 1));
                   final date = await showDatePicker(
                     context: context,
-                    initialDate: _selectedDate ?? DateTime.now(),
-                    firstDate: DateTime.now().subtract(const Duration(days: 30)),
+                    initialDate: _selectedDate != null && _selectedDate!.isAfter(tomorrow)
+                        ? _selectedDate!
+                        : tomorrow,
+                    firstDate: tomorrow,
                     lastDate: DateTime.now().add(const Duration(days: 365 * 5)),
+                    helpText: 'Selecciona una fecha futura',
                   );
                   if (date != null) {
                     setState(() => _selectedDate = date);
