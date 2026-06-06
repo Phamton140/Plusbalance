@@ -56,7 +56,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 8;
+  int get schemaVersion => 9;
 
   @override
   MigrationStrategy get migration {
@@ -120,6 +120,71 @@ class AppDatabase extends _$AppDatabase {
           await (update(categories)
                 ..where((c) => c.id.equals(transferenciaDefaultCategoryId)))
               .write(const CategoriesCompanion(color: Value(transferenciaDefaultColor)));
+        }
+        if (from < 9) {
+          // Columnas para soportar el "revertir" del historial.
+          await m.addColumn(transactions, transactions.transferGroupId);
+          await m.addColumn(transactions, transactions.sourceType);
+          // Transferencias existentes: agrupar pares por monto, tipo y
+          // proximidad temporal para poder revertirlas correctamente. Esto
+          // es una migración best-effort: si hay ambigüedad (dos
+          // transferencias del mismo monto en la misma fecha), la primera
+          // mitad se empareja con la segunda mitad.
+          final allTransfers = await (select(transactions)
+                ..where((t) => t.type.equals('transfer')))
+              .get();
+          // Emparejamos por (amount, fecha con segundos de tolerancia).
+          final used = <String>{};
+          for (final origin in allTransfers) {
+            if (used.contains(origin.id)) continue;
+            // Buscar contraparte: mismo monto, distinta cuenta, fecha
+            // dentro de 60s, no usada.
+            final matches = allTransfers.where((t) {
+              if (used.contains(t.id)) return false;
+              if (t.id == origin.id) return false;
+              if (t.amount != origin.amount) return false;
+              if (t.accountId == origin.accountId) return false;
+              final diff = t.date.difference(origin.date).inSeconds.abs();
+              return diff <= 60;
+            }).toList();
+            if (matches.isNotEmpty) {
+              final groupId = 'tg-${origin.id}';
+              final pair = matches.first;
+              used.add(origin.id);
+              used.add(pair.id);
+              await (update(transactions)
+                    ..where((t) => t.id.equals(origin.id)))
+                  .write(TransactionsCompanion(
+                transferGroupId: Value(groupId),
+                sourceType: const Value('transfer'),
+              ));
+              await (update(transactions)
+                    ..where((t) => t.id.equals(pair.id)))
+                  .write(TransactionsCompanion(
+                transferGroupId: Value(groupId),
+                sourceType: const Value('transfer'),
+              ));
+            }
+          }
+          // Las transacciones que no tengan transferGroupId (incluyendo
+          // gastos, ingresos, pagos de servicios y abonos a metas) reciben
+          // sourceType a partir del heurístico: si tienen serviceId es
+          // 'service', si la categoría es Metas es 'goal', si no 'manual'.
+          final withServiceId = await (select(transactions)
+                ..where((t) => t.serviceId.isNotNull()))
+              .get();
+          for (final tx in withServiceId) {
+            await (update(transactions)..where((t) => t.id.equals(tx.id)))
+                .write(const TransactionsCompanion(sourceType: Value('service')));
+          }
+          final goalTxs = await (select(transactions)
+                ..where((t) => t.categoryId.equals(goalDefaultCategoryId)))
+              .get();
+          for (final tx in goalTxs) {
+            if (withServiceId.any((s) => s.id == tx.id)) continue;
+            await (update(transactions)..where((t) => t.id.equals(tx.id)))
+                .write(const TransactionsCompanion(sourceType: Value('goal')));
+          }
         }
       },
       beforeOpen: (details) async {

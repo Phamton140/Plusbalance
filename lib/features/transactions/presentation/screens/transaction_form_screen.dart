@@ -84,6 +84,7 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
             description: drift.Value(descriptionText.isNotEmpty
                 ? descriptionText
                 : 'Tercero'),
+            sourceType: const drift.Value('transfer'),
           ),
           _destinationAccountId!,
           amountDouble,
@@ -102,13 +103,16 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
             description: drift.Value(descriptionText.isNotEmpty
                 ? descriptionText
                 : 'Tercero'),
+            sourceType: const drift.Value('transfer'),
           ),
           _selectedAccountId!,
           amountDouble,
           false,
         );
       } else {
-        // Transferencia Normal
+        // Transferencia Normal: dos tx agrupadas por transferGroupId
+        // para que la reversa en el historial elimine ambas.
+        final groupId = const Uuid().v4();
         await transactionsDao.createTransaction(
           TransactionsCompanion.insert(
             id: const Uuid().v4(),
@@ -118,6 +122,8 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
             accountId: _selectedAccountId!,
             categoryId: const drift.Value(transferCategoryId),
             description: const drift.Value('Transferencia enviada'),
+            transferGroupId: drift.Value(groupId),
+            sourceType: const drift.Value('transfer'),
           ),
           _selectedAccountId!,
           amountDouble,
@@ -132,6 +138,8 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
             accountId: _destinationAccountId!,
             categoryId: const drift.Value(transferCategoryId),
             description: const drift.Value('Transferencia recibida'),
+            transferGroupId: drift.Value(groupId),
+            sourceType: const drift.Value('transfer'),
           ),
           _destinationAccountId!,
           amountDouble,
@@ -148,6 +156,7 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
             accountId: _selectedAccountId!,
             categoryId: drift.Value(_selectedCategoryId),
             description: drift.Value(_descController.text.trim().isNotEmpty ? _descController.text.trim() : "Registro Rápido"),
+            sourceType: const drift.Value('manual'),
           ),
           _selectedAccountId!,
           amountDouble,

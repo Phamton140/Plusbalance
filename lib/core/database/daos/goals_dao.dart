@@ -61,6 +61,7 @@ class GoalsDao extends DatabaseAccessor<AppDatabase> with _$GoalsDaoMixin {
           accountId: accountId,
           categoryId: const Value(goalDefaultCategoryId),
           description: Value('Abono a meta: ${goal.name}'),
+          sourceType: const Value('goal'),
         ),
       );
 
@@ -73,6 +74,41 @@ class GoalsDao extends DatabaseAccessor<AppDatabase> with _$GoalsDaoMixin {
       await update(goals).replace(
         goal.copyWith(currentAmount: goal.currentAmount + amount),
       );
+    });
+  }
+
+  /// Revierte un abono a meta: devuelve el monto a la cuenta, resta del
+  /// progreso de la meta y elimina la transacción vinculada. Lanza
+  /// [StateError] si la cuenta no tiene saldo suficiente.
+  Future<void> reverseGoalContribution({
+    required String transactionId,
+  }) async {
+    await db.transaction(() async {
+      final tx = await (select(transactions)
+            ..where((t) => t.id.equals(transactionId)))
+          .getSingleOrNull();
+      if (tx == null) {
+        throw StateError('Este abono ya no existe.');
+      }
+      final account = await (select(accounts)
+            ..where((a) => a.id.equals(tx.accountId)))
+          .getSingle();
+      final goalName = (tx.description ?? '')
+          .replaceFirst('Abono a meta: ', '');
+      final goal = await (select(goals)
+            ..where((g) => g.name.equals(goalName)))
+            .getSingleOrNull();
+
+      // Devolver al saldo y restar del progreso.
+      await (update(accounts)..where((a) => a.id.equals(account.id))).write(
+        AccountsCompanion(balance: Value(account.balance + tx.amount)),
+      );
+      if (goal != null) {
+        final newAmount = (goal.currentAmount - tx.amount).clamp(0.0, double.infinity);
+        await update(goals).replace(goal.copyWith(currentAmount: newAmount));
+      }
+      // Borrar la transacción.
+      await (delete(transactions)..where((t) => t.id.equals(tx.id))).go();
     });
   }
 }

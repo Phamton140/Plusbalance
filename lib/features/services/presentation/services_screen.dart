@@ -216,6 +216,7 @@ Future<void> _payLateService(BuildContext context, WidgetRef ref, Service servic
                     description: drift.Value('Pago Manual: ${service.name}'),
                     notes: drift.Value(notes),
                     isRecurring: const drift.Value(true),
+                    sourceType: const drift.Value('service'),
                   ),
                   accountId,
                   totalAmount,

@@ -78,6 +78,7 @@ class Services extends Table with AuditMixin {
 @TableIndex(name: 'idx_tx_account', columns: {#accountId})
 @TableIndex(name: 'idx_tx_service', columns: {#serviceId})
 @TableIndex(name: 'idx_tx_type', columns: {#type})
+@TableIndex(name: 'idx_tx_group', columns: {#transferGroupId})
 class Transactions extends Table with AuditMixin {
   TextColumn get id => text()();
   RealColumn get amount => real()();
@@ -94,6 +95,17 @@ class Transactions extends Table with AuditMixin {
   RealColumn get exchangeRate => real().withDefault(const Constant(1.0))();
   IntColumn get attachmentCount => integer().withDefault(const Constant(0))();
   BoolColumn get isRecurring => boolean().withDefault(const Constant(false))();
+
+  /// Identificador compartido por las dos transacciones que forman una
+  /// transferencia (una en cuenta origen, una en cuenta destino).
+  /// Es null para gastos, ingresos, pagos de servicios y abonos a metas.
+  TextColumn get transferGroupId => text().nullable()();
+
+  /// Origen lógico de la transacción. Útil para revertir efectos
+  /// colaterales (avance de fechas en servicios / recargas) y para
+  /// agrupar mejor en el historial.
+  /// Valores: 'manual', 'service', 'recharge', 'goal', 'transfer'.
+  TextColumn get sourceType => text().withDefault(const Constant('manual'))();
 
   @override
   Set<Column> get primaryKey => {id};

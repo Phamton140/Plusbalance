@@ -2697,6 +2697,29 @@ class $TransactionsTable extends Transactions
     ),
     defaultValue: const Constant(false),
   );
+  static const VerificationMeta _transferGroupIdMeta = const VerificationMeta(
+    'transferGroupId',
+  );
+  @override
+  late final GeneratedColumn<String> transferGroupId = GeneratedColumn<String>(
+    'transfer_group_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _sourceTypeMeta = const VerificationMeta(
+    'sourceType',
+  );
+  @override
+  late final GeneratedColumn<String> sourceType = GeneratedColumn<String>(
+    'source_type',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('manual'),
+  );
   @override
   List<GeneratedColumn> get $columns => [
     createdAt,
@@ -2716,6 +2739,8 @@ class $TransactionsTable extends Transactions
     exchangeRate,
     attachmentCount,
     isRecurring,
+    transferGroupId,
+    sourceType,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -2853,6 +2878,21 @@ class $TransactionsTable extends Transactions
         ),
       );
     }
+    if (data.containsKey('transfer_group_id')) {
+      context.handle(
+        _transferGroupIdMeta,
+        transferGroupId.isAcceptableOrUnknown(
+          data['transfer_group_id']!,
+          _transferGroupIdMeta,
+        ),
+      );
+    }
+    if (data.containsKey('source_type')) {
+      context.handle(
+        _sourceTypeMeta,
+        sourceType.isAcceptableOrUnknown(data['source_type']!, _sourceTypeMeta),
+      );
+    }
     return context;
   }
 
@@ -2930,6 +2970,14 @@ class $TransactionsTable extends Transactions
         DriftSqlType.bool,
         data['${effectivePrefix}is_recurring'],
       )!,
+      transferGroupId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}transfer_group_id'],
+      ),
+      sourceType: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}source_type'],
+      )!,
     );
   }
 
@@ -2957,6 +3005,17 @@ class Transaction extends DataClass implements Insertable<Transaction> {
   final double exchangeRate;
   final int attachmentCount;
   final bool isRecurring;
+
+  /// Identificador compartido por las dos transacciones que forman una
+  /// transferencia (una en cuenta origen, una en cuenta destino).
+  /// Es null para gastos, ingresos, pagos de servicios y abonos a metas.
+  final String? transferGroupId;
+
+  /// Origen lógico de la transacción. Útil para revertir efectos
+  /// colaterales (avance de fechas en servicios / recargas) y para
+  /// agrupar mejor en el historial.
+  /// Valores: 'manual', 'service', 'recharge', 'goal', 'transfer'.
+  final String sourceType;
   const Transaction({
     required this.createdAt,
     required this.updatedAt,
@@ -2975,6 +3034,8 @@ class Transaction extends DataClass implements Insertable<Transaction> {
     required this.exchangeRate,
     required this.attachmentCount,
     required this.isRecurring,
+    this.transferGroupId,
+    required this.sourceType,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -3008,6 +3069,10 @@ class Transaction extends DataClass implements Insertable<Transaction> {
     map['exchange_rate'] = Variable<double>(exchangeRate);
     map['attachment_count'] = Variable<int>(attachmentCount);
     map['is_recurring'] = Variable<bool>(isRecurring);
+    if (!nullToAbsent || transferGroupId != null) {
+      map['transfer_group_id'] = Variable<String>(transferGroupId);
+    }
+    map['source_type'] = Variable<String>(sourceType);
     return map;
   }
 
@@ -3042,6 +3107,10 @@ class Transaction extends DataClass implements Insertable<Transaction> {
       exchangeRate: Value(exchangeRate),
       attachmentCount: Value(attachmentCount),
       isRecurring: Value(isRecurring),
+      transferGroupId: transferGroupId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(transferGroupId),
+      sourceType: Value(sourceType),
     );
   }
 
@@ -3070,6 +3139,8 @@ class Transaction extends DataClass implements Insertable<Transaction> {
       exchangeRate: serializer.fromJson<double>(json['exchangeRate']),
       attachmentCount: serializer.fromJson<int>(json['attachmentCount']),
       isRecurring: serializer.fromJson<bool>(json['isRecurring']),
+      transferGroupId: serializer.fromJson<String?>(json['transferGroupId']),
+      sourceType: serializer.fromJson<String>(json['sourceType']),
     );
   }
   @override
@@ -3093,6 +3164,8 @@ class Transaction extends DataClass implements Insertable<Transaction> {
       'exchangeRate': serializer.toJson<double>(exchangeRate),
       'attachmentCount': serializer.toJson<int>(attachmentCount),
       'isRecurring': serializer.toJson<bool>(isRecurring),
+      'transferGroupId': serializer.toJson<String?>(transferGroupId),
+      'sourceType': serializer.toJson<String>(sourceType),
     };
   }
 
@@ -3114,6 +3187,8 @@ class Transaction extends DataClass implements Insertable<Transaction> {
     double? exchangeRate,
     int? attachmentCount,
     bool? isRecurring,
+    Value<String?> transferGroupId = const Value.absent(),
+    String? sourceType,
   }) => Transaction(
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
@@ -3134,6 +3209,10 @@ class Transaction extends DataClass implements Insertable<Transaction> {
     exchangeRate: exchangeRate ?? this.exchangeRate,
     attachmentCount: attachmentCount ?? this.attachmentCount,
     isRecurring: isRecurring ?? this.isRecurring,
+    transferGroupId: transferGroupId.present
+        ? transferGroupId.value
+        : this.transferGroupId,
+    sourceType: sourceType ?? this.sourceType,
   );
   Transaction copyWithCompanion(TransactionsCompanion data) {
     return Transaction(
@@ -3166,6 +3245,12 @@ class Transaction extends DataClass implements Insertable<Transaction> {
       isRecurring: data.isRecurring.present
           ? data.isRecurring.value
           : this.isRecurring,
+      transferGroupId: data.transferGroupId.present
+          ? data.transferGroupId.value
+          : this.transferGroupId,
+      sourceType: data.sourceType.present
+          ? data.sourceType.value
+          : this.sourceType,
     );
   }
 
@@ -3188,7 +3273,9 @@ class Transaction extends DataClass implements Insertable<Transaction> {
           ..write('currency: $currency, ')
           ..write('exchangeRate: $exchangeRate, ')
           ..write('attachmentCount: $attachmentCount, ')
-          ..write('isRecurring: $isRecurring')
+          ..write('isRecurring: $isRecurring, ')
+          ..write('transferGroupId: $transferGroupId, ')
+          ..write('sourceType: $sourceType')
           ..write(')'))
         .toString();
   }
@@ -3212,6 +3299,8 @@ class Transaction extends DataClass implements Insertable<Transaction> {
     exchangeRate,
     attachmentCount,
     isRecurring,
+    transferGroupId,
+    sourceType,
   );
   @override
   bool operator ==(Object other) =>
@@ -3233,7 +3322,9 @@ class Transaction extends DataClass implements Insertable<Transaction> {
           other.currency == this.currency &&
           other.exchangeRate == this.exchangeRate &&
           other.attachmentCount == this.attachmentCount &&
-          other.isRecurring == this.isRecurring);
+          other.isRecurring == this.isRecurring &&
+          other.transferGroupId == this.transferGroupId &&
+          other.sourceType == this.sourceType);
 }
 
 class TransactionsCompanion extends UpdateCompanion<Transaction> {
@@ -3254,6 +3345,8 @@ class TransactionsCompanion extends UpdateCompanion<Transaction> {
   final Value<double> exchangeRate;
   final Value<int> attachmentCount;
   final Value<bool> isRecurring;
+  final Value<String?> transferGroupId;
+  final Value<String> sourceType;
   final Value<int> rowid;
   const TransactionsCompanion({
     this.createdAt = const Value.absent(),
@@ -3273,6 +3366,8 @@ class TransactionsCompanion extends UpdateCompanion<Transaction> {
     this.exchangeRate = const Value.absent(),
     this.attachmentCount = const Value.absent(),
     this.isRecurring = const Value.absent(),
+    this.transferGroupId = const Value.absent(),
+    this.sourceType = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   TransactionsCompanion.insert({
@@ -3293,6 +3388,8 @@ class TransactionsCompanion extends UpdateCompanion<Transaction> {
     this.exchangeRate = const Value.absent(),
     this.attachmentCount = const Value.absent(),
     this.isRecurring = const Value.absent(),
+    this.transferGroupId = const Value.absent(),
+    this.sourceType = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        amount = Value(amount),
@@ -3317,6 +3414,8 @@ class TransactionsCompanion extends UpdateCompanion<Transaction> {
     Expression<double>? exchangeRate,
     Expression<int>? attachmentCount,
     Expression<bool>? isRecurring,
+    Expression<String>? transferGroupId,
+    Expression<String>? sourceType,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -3337,6 +3436,8 @@ class TransactionsCompanion extends UpdateCompanion<Transaction> {
       if (exchangeRate != null) 'exchange_rate': exchangeRate,
       if (attachmentCount != null) 'attachment_count': attachmentCount,
       if (isRecurring != null) 'is_recurring': isRecurring,
+      if (transferGroupId != null) 'transfer_group_id': transferGroupId,
+      if (sourceType != null) 'source_type': sourceType,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -3359,6 +3460,8 @@ class TransactionsCompanion extends UpdateCompanion<Transaction> {
     Value<double>? exchangeRate,
     Value<int>? attachmentCount,
     Value<bool>? isRecurring,
+    Value<String?>? transferGroupId,
+    Value<String>? sourceType,
     Value<int>? rowid,
   }) {
     return TransactionsCompanion(
@@ -3379,6 +3482,8 @@ class TransactionsCompanion extends UpdateCompanion<Transaction> {
       exchangeRate: exchangeRate ?? this.exchangeRate,
       attachmentCount: attachmentCount ?? this.attachmentCount,
       isRecurring: isRecurring ?? this.isRecurring,
+      transferGroupId: transferGroupId ?? this.transferGroupId,
+      sourceType: sourceType ?? this.sourceType,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -3437,6 +3542,12 @@ class TransactionsCompanion extends UpdateCompanion<Transaction> {
     if (isRecurring.present) {
       map['is_recurring'] = Variable<bool>(isRecurring.value);
     }
+    if (transferGroupId.present) {
+      map['transfer_group_id'] = Variable<String>(transferGroupId.value);
+    }
+    if (sourceType.present) {
+      map['source_type'] = Variable<String>(sourceType.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -3463,6 +3574,8 @@ class TransactionsCompanion extends UpdateCompanion<Transaction> {
           ..write('exchangeRate: $exchangeRate, ')
           ..write('attachmentCount: $attachmentCount, ')
           ..write('isRecurring: $isRecurring, ')
+          ..write('transferGroupId: $transferGroupId, ')
+          ..write('sourceType: $sourceType, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -5436,6 +5549,10 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     'idx_tx_type',
     'CREATE INDEX idx_tx_type ON transactions (type)',
   );
+  late final Index idxTxGroup = Index(
+    'idx_tx_group',
+    'CREATE INDEX idx_tx_group ON transactions (transfer_group_id)',
+  );
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -5454,6 +5571,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     idxTxAccount,
     idxTxService,
     idxTxType,
+    idxTxGroup,
   ];
 }
 
@@ -7341,6 +7459,8 @@ typedef $$TransactionsTableCreateCompanionBuilder =
       Value<double> exchangeRate,
       Value<int> attachmentCount,
       Value<bool> isRecurring,
+      Value<String?> transferGroupId,
+      Value<String> sourceType,
       Value<int> rowid,
     });
 typedef $$TransactionsTableUpdateCompanionBuilder =
@@ -7362,6 +7482,8 @@ typedef $$TransactionsTableUpdateCompanionBuilder =
       Value<double> exchangeRate,
       Value<int> attachmentCount,
       Value<bool> isRecurring,
+      Value<String?> transferGroupId,
+      Value<String> sourceType,
       Value<int> rowid,
     });
 
@@ -7547,6 +7669,16 @@ class $$TransactionsTableFilterComposer
 
   ColumnFilters<bool> get isRecurring => $composableBuilder(
     column: $table.isRecurring,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get transferGroupId => $composableBuilder(
+    column: $table.transferGroupId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get sourceType => $composableBuilder(
+    column: $table.sourceType,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -7749,6 +7881,16 @@ class $$TransactionsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get transferGroupId => $composableBuilder(
+    column: $table.transferGroupId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get sourceType => $composableBuilder(
+    column: $table.sourceType,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   $$AccountsTableOrderingComposer get accountId {
     final $$AccountsTableOrderingComposer composer = $composerBuilder(
       composer: this,
@@ -7877,6 +8019,16 @@ class $$TransactionsTableAnnotationComposer
 
   GeneratedColumn<bool> get isRecurring => $composableBuilder(
     column: $table.isRecurring,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get transferGroupId => $composableBuilder(
+    column: $table.transferGroupId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get sourceType => $composableBuilder(
+    column: $table.sourceType,
     builder: (column) => column,
   );
 
@@ -8051,6 +8203,8 @@ class $$TransactionsTableTableManager
                 Value<double> exchangeRate = const Value.absent(),
                 Value<int> attachmentCount = const Value.absent(),
                 Value<bool> isRecurring = const Value.absent(),
+                Value<String?> transferGroupId = const Value.absent(),
+                Value<String> sourceType = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => TransactionsCompanion(
                 createdAt: createdAt,
@@ -8070,6 +8224,8 @@ class $$TransactionsTableTableManager
                 exchangeRate: exchangeRate,
                 attachmentCount: attachmentCount,
                 isRecurring: isRecurring,
+                transferGroupId: transferGroupId,
+                sourceType: sourceType,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -8091,6 +8247,8 @@ class $$TransactionsTableTableManager
                 Value<double> exchangeRate = const Value.absent(),
                 Value<int> attachmentCount = const Value.absent(),
                 Value<bool> isRecurring = const Value.absent(),
+                Value<String?> transferGroupId = const Value.absent(),
+                Value<String> sourceType = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => TransactionsCompanion.insert(
                 createdAt: createdAt,
@@ -8110,6 +8268,8 @@ class $$TransactionsTableTableManager
                 exchangeRate: exchangeRate,
                 attachmentCount: attachmentCount,
                 isRecurring: isRecurring,
+                transferGroupId: transferGroupId,
+                sourceType: sourceType,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0

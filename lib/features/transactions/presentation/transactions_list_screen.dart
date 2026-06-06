@@ -193,35 +193,26 @@ class TransactionsListScreen extends ConsumerWidget {
                 background: Container(
                   alignment: Alignment.centerRight,
                   padding: const EdgeInsets.only(right: 20),
-                  color: Colors.redAccent,
-                  child: const Icon(Icons.delete, color: Colors.white),
+                  decoration: BoxDecoration(
+                    color: Colors.orange.shade700,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.undo, color: Colors.white),
+                      SizedBox(width: 6),
+                      Text('Revertir',
+                          style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold)),
+                    ],
+                  ),
                 ),
-                confirmDismiss: (direction) async {
-                  return await showDialog(
-                    context: context,
-                    builder: (BuildContext context) {
-                      return AlertDialog(
-                        title: const Text("Confirmar Eliminación"),
-                        content: const Text("¿Estás seguro que deseas eliminar esta transacción? Tu saldo será revertido."),
-                        actions: [
-                          TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text("Cancelar")),
-                          ElevatedButton(
-                            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-                            onPressed: () => Navigator.of(context).pop(true),
-                            child: const Text("Eliminar")
-                          ),
-                        ],
-                      );
-                    },
-                  );
-                },
+                confirmDismiss: (direction) =>
+                    _confirmReverse(context, ref, tx),
                 onDismissed: (direction) async {
-                  await ref.read(transactionsDaoProvider).deleteTransactionAndRevertBalance(tx);
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Transacción eliminada y balance revertido')),
-                    );
-                  }
+                  await _performReverse(context, ref, tx);
                 },
                 child: Card(
                   margin: const EdgeInsets.only(bottom: 6),
@@ -258,19 +249,45 @@ class TransactionsListScreen extends ConsumerWidget {
                       DateFormat('HH:mm').format(tx.date),
                       style: const TextStyle(fontSize: 12),
                     ),
-                    trailing: Text(
-                      isTransfer
-                          ? '\$${tx.amount.toStringAsFixed(2)}'
-                          : '${isIncome ? '+' : '-'}\$${tx.amount.toStringAsFixed(2)}',
-                      style: TextStyle(
-                        fontWeight: FontWeight.w900,
-                        fontSize: 16,
-                        color: isIncome
-                            ? Colors.green
-                            : isTransfer
-                                ? Colors.blue
-                                : Colors.redAccent,
-                      ),
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          isTransfer
+                              ? '\$${tx.amount.toStringAsFixed(2)}'
+                              : '${isIncome ? '+' : '-'}\$${tx.amount.toStringAsFixed(2)}',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w900,
+                            fontSize: 16,
+                            color: isIncome
+                                ? Colors.green
+                                : isTransfer
+                                    ? Colors.blue
+                                    : Colors.redAccent,
+                          ),
+                        ),
+                        PopupMenuButton<String>(
+                          tooltip: 'Más acciones',
+                          icon: const Icon(Icons.more_vert, size: 20),
+                          onSelected: (value) {
+                            if (value == 'reverse') {
+                              _confirmAndReverse(context, ref, tx);
+                            }
+                          },
+                          itemBuilder: (context) => const [
+                            PopupMenuItem(
+                              value: 'reverse',
+                              child: Row(
+                                children: [
+                                  Icon(Icons.undo, color: Colors.orange),
+                                  SizedBox(width: 8),
+                                  Text('Revertir'),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
                     ),
                   ),
                 ),
@@ -325,4 +342,92 @@ class _HistoryItem {
   final Transaction? tx;
   const _HistoryItem.header(this.header, this.day) : tx = null;
   const _HistoryItem.tx(this.tx) : header = null, day = null;
+}
+
+/// Muestra un diálogo de confirmación y, si el usuario acepta, ejecuta
+/// la reversión de la transacción. Usado por el `PopupMenuButton`.
+Future<void> _confirmAndReverse(
+    BuildContext context, WidgetRef ref, Transaction tx) async {
+  final ok = await _confirmReverse(context, ref, tx);
+  if (ok == true) {
+    await _performReverse(context, ref, tx);
+  }
+}
+
+/// Diálogo de confirmación para revertir una transacción. Devuelve `true`
+/// si el usuario aceptó.
+Future<bool?> _confirmReverse(
+    BuildContext context, WidgetRef ref, Transaction tx) async {
+  final isTransfer = tx.type == 'transfer';
+  final isIncome = tx.type == 'income';
+  final sign = isIncome ? '+' : '-';
+  final detail = isTransfer
+      ? 'Esta transferencia se compone de dos movimientos (origen y destino). Se restaurará el saldo en ambas cuentas.'
+      : 'El saldo de la cuenta se ${isIncome ? 'descontará' : 'devolverá'} y la transacción se eliminará del historial.';
+  return showDialog<bool>(
+    context: context,
+    builder: (BuildContext context) {
+      return AlertDialog(
+        title: const Text('¿Revertir esta transacción?'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              tx.description ?? 'Transacción',
+              style: const TextStyle(
+                  fontWeight: FontWeight.bold, fontSize: 15),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              '$sign\$${tx.amount.toStringAsFixed(2)} · ${DateFormat('dd/MM/yyyy HH:mm').format(tx.date)}',
+              style: const TextStyle(color: Colors.black54, fontSize: 13),
+            ),
+            const SizedBox(height: 12),
+            Text(detail, style: const TextStyle(fontSize: 13)),
+          ],
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Cancelar')),
+          ElevatedButton.icon(
+            icon: const Icon(Icons.undo, size: 18),
+            label: const Text('Revertir'),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
+            onPressed: () => Navigator.of(context).pop(true),
+          ),
+        ],
+      );
+    },
+  );
+}
+
+/// Ejecuta la reversión y muestra feedback al usuario (SnackBar o error).
+Future<void> _performReverse(
+    BuildContext context, WidgetRef ref, Transaction tx) async {
+  try {
+    if (tx.sourceType == 'goal') {
+      await ref.read(goalsDaoProvider).reverseGoalContribution(
+            transactionId: tx.id,
+          );
+    } else {
+      await ref.read(transactionsDaoProvider).reverseTransaction(tx);
+    }
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+            content: Text('Transacción revertida y saldo restaurado'),
+            backgroundColor: Colors.orange),
+      );
+    }
+  } catch (e) {
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+            content: Text('No se pudo revertir: $e'),
+            backgroundColor: Colors.red),
+      );
+    }
+  }
 }
