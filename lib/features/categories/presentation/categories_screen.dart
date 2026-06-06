@@ -4,6 +4,7 @@ import 'package:uuid/uuid.dart';
 import 'package:drift/drift.dart' as drift;
 import '../../../core/database/app_database.dart';
 import '../../../core/providers/database_provider.dart';
+import '../../../core/theme/category_icons.dart';
 import 'screens/category_form_screen.dart';
 
 final categoriesProvider = StreamProvider<List<Category>>((ref) {
@@ -34,7 +35,7 @@ class CategoriesScreen extends ConsumerWidget {
                 leading: CircleAvatar(
                   backgroundColor: Color(int.parse(cat.color.replaceAll('#', '0xFF'))).withValues(alpha: 0.2),
                   child: Icon(
-                    IconData(int.parse(cat.icon), fontFamily: 'MaterialIcons'),
+                    iconFromCodePoint(cat.icon),
                     color: Color(int.parse(cat.color.replaceAll('#', '0xFF'))),
                   ),
                 ),

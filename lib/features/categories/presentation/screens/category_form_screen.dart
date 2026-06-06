@@ -4,6 +4,7 @@ import 'package:uuid/uuid.dart';
 import 'package:drift/drift.dart' as drift;
 import '../../../../core/database/app_database.dart';
 import '../../../../core/providers/database_provider.dart';
+import '../../../../core/theme/category_icons.dart';
 import '../../../../core/theme/category_palette.dart';
 
 class CategoryFormScreen extends ConsumerStatefulWidget {
@@ -20,20 +21,7 @@ class _CategoryFormScreenState extends ConsumerState<CategoryFormScreen> {
   late String _selectedIcon;
   String? _selectedColor;
 
-  final List<IconData> _icons = [
-    Icons.shopping_cart,
-    Icons.restaurant,
-    Icons.directions_bus,
-    Icons.movie,
-    Icons.medical_services,
-    Icons.home,
-    Icons.church,
-    Icons.flight,
-    Icons.fitness_center,
-    Icons.school,
-    Icons.pets,
-    Icons.sports_esports,
-  ];
+  late final List<IconData> _icons = selectableCategoryIcons;
 
   @override
   void initState() {
@@ -135,10 +123,10 @@ class _CategoryFormScreenState extends ConsumerState<CategoryFormScreen> {
                   final iCode = i.codePoint.toString();
                   final isSelected = _selectedIcon == iCode;
                   // Color de previsualización del icono: usa el color actual
-                  // seleccionado o el primero de la paleta
+                  // seleccionado o el primero de la paleta.
                   final previewColor = _selectedColor != null
                       ? Color(int.parse(_selectedColor!.replaceAll('#', '0xFF')))
-                      : const Color(0xFF6C63FF);
+                      : const Color(0xFF4D96FF);
                   return GestureDetector(
                     onTap: () => setState(() => _selectedIcon = iCode),
                     child: AnimatedContainer(

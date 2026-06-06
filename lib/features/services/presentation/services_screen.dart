@@ -4,6 +4,7 @@ import 'package:uuid/uuid.dart';
 import 'package:drift/drift.dart' as drift;
 import '../../../core/database/app_database.dart';
 import '../../../core/providers/database_provider.dart';
+import '../../../core/theme/category_icons.dart';
 import '../domain/service_scheduler.dart';
 import 'screens/service_form_screen.dart';
 
@@ -75,7 +76,7 @@ class ServicesScreen extends ConsumerWidget {
                   child: ListTile(
                     leading: CircleAvatar(
                       backgroundColor: Color(int.parse(service.color.replaceAll('#', '0xFF'))),
-                      child: Icon(IconData(int.parse(service.icon), fontFamily: 'MaterialIcons'), color: Colors.white),
+                      child: Icon(iconFromCodePoint(service.icon), color: Colors.white),
                     ),
                     title: Text(service.name, style: const TextStyle(fontWeight: FontWeight.bold)),
                     subtitle: Column(
