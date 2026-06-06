@@ -1,14 +1,21 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/date_symbol_data_local.dart';
 import 'core/theme/app_theme.dart';
 import 'core/theme/theme_provider.dart';
 import 'core/router/app_router.dart';
 import 'features/auth/presentation/pin_screen.dart';
 import 'features/auth/providers/auth_providers.dart';
 
-void main() {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Inicializa los datos de localización del paquete `intl` para los
+  // locales que usa la app (es en historial y PDF). Sin esto, cualquier
+  // DateFormat con un locale que no sea 'en_US' lanza
+  // LocaleDataException al formatear.
+  await initializeDateFormatting('es', null);
 
   // Captura cualquier error no manejado y lo muestra en consola con
   // contexto (útil para depurar fallos silenciosos como el de
