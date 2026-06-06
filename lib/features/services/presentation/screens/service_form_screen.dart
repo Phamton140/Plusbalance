@@ -4,6 +4,7 @@ import 'package:uuid/uuid.dart';
 import 'package:drift/drift.dart' as drift;
 import '../../../../core/database/app_database.dart';
 import '../../../../core/providers/database_provider.dart';
+import '../../../../core/automation/automation_engine.dart';
 
 class ServiceFormScreen extends ConsumerStatefulWidget {
   final Service? service;
@@ -23,6 +24,7 @@ class _ServiceFormScreenState extends ConsumerState<ServiceFormScreen> {
   late bool _autoPay;
   DateTime? _selectedDate;
   String? _selectedCategoryId;
+  String? _selectedAccountId;
   
   List<int> _selectedDays = [];
 
@@ -49,6 +51,7 @@ class _ServiceFormScreenState extends ConsumerState<ServiceFormScreen> {
     _autoPay = widget.service?.autoGenerateTransaction ?? true;
     _selectedDate = widget.service?.nextDate;
     _selectedCategoryId = widget.service?.categoryId;
+    _selectedAccountId = widget.service?.accountId;
 
     final freq = widget.service?.frequency ?? 'monthly';
     if (freq.startsWith('weekly:')) {
@@ -70,8 +73,8 @@ class _ServiceFormScreenState extends ConsumerState<ServiceFormScreen> {
     final name = _nameController.text.trim();
     final amount = double.tryParse(_amountController.text) ?? 0.0;
     
-    if (name.isEmpty || amount <= 0 || _selectedDate == null) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Completa todos los campos y la fecha')));
+    if (name.isEmpty || amount <= 0 || _selectedDate == null || _selectedAccountId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Completa todos los campos, la fecha y la cuenta')));
       return;
     }
 
@@ -97,6 +100,7 @@ class _ServiceFormScreenState extends ConsumerState<ServiceFormScreen> {
           label: drift.Value(_selectedLabel),
           frequency: finalFrequency,
           nextDate: _selectedDate!,
+          accountId: drift.Value(_selectedAccountId),
           categoryId: drift.Value(_selectedCategoryId),
           autoGenerateTransaction: drift.Value(_autoPay),
         )
@@ -110,12 +114,17 @@ class _ServiceFormScreenState extends ConsumerState<ServiceFormScreen> {
           label: _selectedLabel,
           frequency: finalFrequency,
           nextDate: _selectedDate!,
+          accountId: drift.Value(_selectedAccountId),
           categoryId: drift.Value(_selectedCategoryId),
           autoGenerateTransaction: _autoPay,
           updatedAt: DateTime.now(),
         )
       );
     }
+    
+    // Forzar ejecución del motor de automatización para evaluar servicios recién registrados o editados
+    ref.invalidate(automationEngineProvider);
+    
     if (mounted) Navigator.pop(context);
   }
 
@@ -188,6 +197,7 @@ class _ServiceFormScreenState extends ConsumerState<ServiceFormScreen> {
                     final id = d['id'] as int;
                     final isSelected = _selectedDays.contains(id);
                     return ChoiceChip(
+                      showCheckmark: false,
                       label: Text(d['name']),
                       selected: isSelected,
                       onSelected: (selected) {
@@ -206,7 +216,27 @@ class _ServiceFormScreenState extends ConsumerState<ServiceFormScreen> {
               const SizedBox(height: 16),
               Consumer(
                 builder: (context, ref, child) {
-                  final catsAsync = ref.watch(StreamProvider((ref) => ref.watch(categoriesDaoProvider).watchAllCategories()));
+                  final accountsAsync = ref.watch(_activeAccountsProvider);
+                  return accountsAsync.when(
+                    data: (accounts) {
+                      final validAccId = accounts.any((a) => a.id == _selectedAccountId) ? _selectedAccountId : null;
+                      return DropdownButtonFormField<String>(
+                        isExpanded: true,
+                        value: validAccId,
+                        decoration: const InputDecoration(labelText: 'Cuenta de Cargo/Abono'),
+                        items: accounts.map((a) => DropdownMenuItem(value: a.id, child: Text(a.name, overflow: TextOverflow.ellipsis))).toList(),
+                        onChanged: (val) => setState(() => _selectedAccountId = val),
+                      );
+                    },
+                    loading: () => const CircularProgressIndicator(),
+                    error: (e, __) => Text('Error: $e'),
+                  );
+                }
+              ),
+              const SizedBox(height: 16),
+              Consumer(
+                builder: (context, ref, child) {
+                  final catsAsync = ref.watch(_categoriesProvider);
                   return catsAsync.when(
                     data: (cats) {
                       final validCatId = cats.any((c) => c.id == _selectedCategoryId) ? _selectedCategoryId : null;
@@ -221,8 +251,8 @@ class _ServiceFormScreenState extends ConsumerState<ServiceFormScreen> {
                         onChanged: (val) => setState(() => _selectedCategoryId = val),
                       );
                     },
-                    loading: () => const SizedBox(),
-                    error: (_, __) => const SizedBox(),
+                    loading: () => const CircularProgressIndicator(),
+                    error: (e, __) => Text('Error: $e'),
                   );
                 }
               ),
@@ -275,3 +305,11 @@ class _ServiceFormScreenState extends ConsumerState<ServiceFormScreen> {
     );
   }
 }
+
+final _activeAccountsProvider = StreamProvider((ref) {
+  return ref.watch(accountsDaoProvider).watchActiveAccounts();
+});
+
+final _categoriesProvider = StreamProvider((ref) {
+  return ref.watch(categoriesDaoProvider).watchAllCategories();
+});

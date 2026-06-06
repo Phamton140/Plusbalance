@@ -53,40 +53,77 @@ class DashboardScreen extends ConsumerWidget {
                       ),
                     ],
                   ),
-                  GestureDetector(
-                    onTap: () => context.push('/profile').then((_) => ref.refresh(settingsDaoProvider)),
-                    child: Consumer(
-                      builder: (context, ref, child) {
-                        final usernameAsync = ref.watch(_usernameProvider);
-                        return Hero(
-                          tag: 'avatar_profile',
-                          child: CircleAvatar(
-                            radius: 24,
-                            backgroundColor: Colors.grey.withValues(alpha: 0.1),
-                            child: usernameAsync.when(
-                              data: (name) {
-                                String initials = "?";
-                                if (name.isNotEmpty) {
-                                  final parts = name.split(" ").where((p) => p.isNotEmpty).toList();
-                                  if (parts.length >= 2) {
-                                    initials = "${parts[0][0]}${parts[1][0]}".toUpperCase();
-                                  } else {
-                                    initials = parts[0].substring(0, parts[0].length >= 2 ? 2 : 1).toUpperCase();
-                                  }
-                                }
-                                return CircleAvatar(
-                                  radius: 24,
-                                  backgroundColor: const Color(0xFF6C63FF),
-                                  child: Text(initials, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
-                                );
-                              },
-                              loading: () => const CircularProgressIndicator(),
-                              error: (e, s) => const Icon(Icons.person),
-                            ),
-                          ),
-                        );
-                      }
-                    ),
+                  Row(
+                    children: [
+                      Consumer(
+                        builder: (context, ref, child) {
+                          final lateList = ref.watch(lateServicesProvider).valueOrNull ?? [];
+                          final upcomingList = (ref.watch(upcomingServicesProvider).valueOrNull ?? []).where((s) => s.status != 'late').toList();
+                          final count = lateList.length + upcomingList.length;
+
+                          return Stack(
+                            children: [
+                              IconButton(
+                                icon: const Icon(Icons.notifications_outlined, size: 28),
+                                onPressed: () => context.push('/notifications'),
+                              ),
+                              if (count > 0)
+                                Positioned(
+                                  right: 8,
+                                  top: 8,
+                                  child: Container(
+                                    padding: const EdgeInsets.all(4),
+                                    decoration: const BoxDecoration(
+                                      color: Colors.red,
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: Text(
+                                      '$count',
+                                      style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          );
+                        }
+                      ),
+                      const SizedBox(width: 8),
+                      GestureDetector(
+                        onTap: () => context.push('/profile').then((_) => ref.refresh(settingsDaoProvider)),
+                        child: Consumer(
+                          builder: (context, ref, child) {
+                            final usernameAsync = ref.watch(_usernameProvider);
+                            return Hero(
+                              tag: 'avatar_profile',
+                              child: CircleAvatar(
+                                radius: 24,
+                                backgroundColor: Colors.grey.withValues(alpha: 0.1),
+                                child: usernameAsync.when(
+                                  data: (name) {
+                                    String initials = "?";
+                                    if (name.isNotEmpty) {
+                                      final parts = name.split(" ").where((p) => p.isNotEmpty).toList();
+                                      if (parts.length >= 2) {
+                                        initials = "${parts[0][0]}${parts[1][0]}".toUpperCase();
+                                      } else {
+                                        initials = parts[0].substring(0, parts[0].length >= 2 ? 2 : 1).toUpperCase();
+                                      }
+                                    }
+                                    return CircleAvatar(
+                                      radius: 24,
+                                      backgroundColor: const Color(0xFF6C63FF),
+                                      child: Text(initials, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
+                                    );
+                                  },
+                                  loading: () => const CircularProgressIndicator(),
+                                  error: (e, s) => const Icon(Icons.person),
+                                ),
+                              ),
+                            );
+                          }
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -119,50 +156,6 @@ class DashboardScreen extends ConsumerWidget {
                           return _ExpensePieChart(transactions: expenses, categories: categories);
                         }
                       ),
-                    ),
-                    const SizedBox(height: 16),
-                    // Upcoming Services Alerts
-                    Consumer(
-                      builder: (context, ref, child) {
-                        final upcomingAsync = ref.watch(upcomingServicesProvider);
-                        return upcomingAsync.when(
-                          data: (services) {
-                            if (services.isEmpty) return const SizedBox();
-                            return Column(
-                              children: services.map((s) {
-                                final now = DateTime.now();
-                                final today = DateTime(now.year, now.month, now.day);
-                                final target = DateTime(s.nextDate.year, s.nextDate.month, s.nextDate.day);
-                                final days = target.difference(today).inDays;
-                                final daysText = days <= 0 ? '¡Hoy!' : 'en $days días';
-                                return Container(
-                                  margin: const EdgeInsets.only(bottom: 8, left: 24, right: 24),
-                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                                  decoration: BoxDecoration(
-                                    color: Colors.orange.withValues(alpha: 0.1),
-                                    border: Border.all(color: Colors.orange.withValues(alpha: 0.5)),
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  child: Row(
-                                    children: [
-                                      const Icon(Icons.warning_amber_rounded, color: Colors.orange),
-                                      const SizedBox(width: 12),
-                                      Expanded(
-                                        child: Text(
-                                          'Próximo pago: ${s.name} - \$${s.amount.toStringAsFixed(2)} $daysText',
-                                          style: const TextStyle(color: Colors.orange, fontWeight: FontWeight.bold, fontSize: 13),
-                                        ),
-                                      )
-                                    ],
-                                  ),
-                                ).animate().fadeIn().slideY(begin: -0.2);
-                              }).toList(),
-                            );
-                          },
-                          loading: () => const SizedBox(),
-                          error: (error, stack) => const SizedBox(),
-                        );
-                      }
                     ),
                     const SizedBox(height: 16),
                     const Padding(
@@ -327,6 +320,10 @@ final _usernameProvider = FutureProvider<String>((ref) async {
 
 final upcomingServicesProvider = StreamProvider<List<Service>>((ref) {
   return ref.watch(servicesDaoProvider).watchUpcomingServices();
+});
+
+final lateServicesProvider = StreamProvider<List<Service>>((ref) {
+  return ref.watch(servicesDaoProvider).watchLateServices();
 });
 
 class _ModuleGrid extends StatelessWidget {

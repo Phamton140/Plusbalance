@@ -1393,6 +1393,16 @@ class $ServicesTable extends Services with TableInfo<$ServicesTable, Service> {
     requiredDuringInsert: false,
     defaultValue: const Constant('#6C63FF'),
   );
+  static const VerificationMeta _statusMeta = const VerificationMeta('status');
+  @override
+  late final GeneratedColumn<String> status = GeneratedColumn<String>(
+    'status',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('active'),
+  );
   @override
   List<GeneratedColumn> get $columns => [
     createdAt,
@@ -1411,6 +1421,7 @@ class $ServicesTable extends Services with TableInfo<$ServicesTable, Service> {
     isActive,
     icon,
     color,
+    status,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -1533,6 +1544,12 @@ class $ServicesTable extends Services with TableInfo<$ServicesTable, Service> {
         color.isAcceptableOrUnknown(data['color']!, _colorMeta),
       );
     }
+    if (data.containsKey('status')) {
+      context.handle(
+        _statusMeta,
+        status.isAcceptableOrUnknown(data['status']!, _statusMeta),
+      );
+    }
     return context;
   }
 
@@ -1606,6 +1623,10 @@ class $ServicesTable extends Services with TableInfo<$ServicesTable, Service> {
         DriftSqlType.string,
         data['${effectivePrefix}color'],
       )!,
+      status: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}status'],
+      )!,
     );
   }
 
@@ -1632,6 +1653,7 @@ class Service extends DataClass implements Insertable<Service> {
   final bool isActive;
   final String icon;
   final String color;
+  final String status;
   const Service({
     required this.createdAt,
     required this.updatedAt,
@@ -1649,6 +1671,7 @@ class Service extends DataClass implements Insertable<Service> {
     required this.isActive,
     required this.icon,
     required this.color,
+    required this.status,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -1673,6 +1696,7 @@ class Service extends DataClass implements Insertable<Service> {
     map['is_active'] = Variable<bool>(isActive);
     map['icon'] = Variable<String>(icon);
     map['color'] = Variable<String>(color);
+    map['status'] = Variable<String>(status);
     return map;
   }
 
@@ -1698,6 +1722,7 @@ class Service extends DataClass implements Insertable<Service> {
       isActive: Value(isActive),
       icon: Value(icon),
       color: Value(color),
+      status: Value(status),
     );
   }
 
@@ -1725,6 +1750,7 @@ class Service extends DataClass implements Insertable<Service> {
       isActive: serializer.fromJson<bool>(json['isActive']),
       icon: serializer.fromJson<String>(json['icon']),
       color: serializer.fromJson<String>(json['color']),
+      status: serializer.fromJson<String>(json['status']),
     );
   }
   @override
@@ -1749,6 +1775,7 @@ class Service extends DataClass implements Insertable<Service> {
       'isActive': serializer.toJson<bool>(isActive),
       'icon': serializer.toJson<String>(icon),
       'color': serializer.toJson<String>(color),
+      'status': serializer.toJson<String>(status),
     };
   }
 
@@ -1769,6 +1796,7 @@ class Service extends DataClass implements Insertable<Service> {
     bool? isActive,
     String? icon,
     String? color,
+    String? status,
   }) => Service(
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
@@ -1787,6 +1815,7 @@ class Service extends DataClass implements Insertable<Service> {
     isActive: isActive ?? this.isActive,
     icon: icon ?? this.icon,
     color: color ?? this.color,
+    status: status ?? this.status,
   );
   Service copyWithCompanion(ServicesCompanion data) {
     return Service(
@@ -1812,6 +1841,7 @@ class Service extends DataClass implements Insertable<Service> {
       isActive: data.isActive.present ? data.isActive.value : this.isActive,
       icon: data.icon.present ? data.icon.value : this.icon,
       color: data.color.present ? data.color.value : this.color,
+      status: data.status.present ? data.status.value : this.status,
     );
   }
 
@@ -1833,7 +1863,8 @@ class Service extends DataClass implements Insertable<Service> {
           ..write('autoGenerateTransaction: $autoGenerateTransaction, ')
           ..write('isActive: $isActive, ')
           ..write('icon: $icon, ')
-          ..write('color: $color')
+          ..write('color: $color, ')
+          ..write('status: $status')
           ..write(')'))
         .toString();
   }
@@ -1856,6 +1887,7 @@ class Service extends DataClass implements Insertable<Service> {
     isActive,
     icon,
     color,
+    status,
   );
   @override
   bool operator ==(Object other) =>
@@ -1876,7 +1908,8 @@ class Service extends DataClass implements Insertable<Service> {
           other.autoGenerateTransaction == this.autoGenerateTransaction &&
           other.isActive == this.isActive &&
           other.icon == this.icon &&
-          other.color == this.color);
+          other.color == this.color &&
+          other.status == this.status);
 }
 
 class ServicesCompanion extends UpdateCompanion<Service> {
@@ -1896,6 +1929,7 @@ class ServicesCompanion extends UpdateCompanion<Service> {
   final Value<bool> isActive;
   final Value<String> icon;
   final Value<String> color;
+  final Value<String> status;
   final Value<int> rowid;
   const ServicesCompanion({
     this.createdAt = const Value.absent(),
@@ -1914,6 +1948,7 @@ class ServicesCompanion extends UpdateCompanion<Service> {
     this.isActive = const Value.absent(),
     this.icon = const Value.absent(),
     this.color = const Value.absent(),
+    this.status = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   ServicesCompanion.insert({
@@ -1933,6 +1968,7 @@ class ServicesCompanion extends UpdateCompanion<Service> {
     this.isActive = const Value.absent(),
     this.icon = const Value.absent(),
     this.color = const Value.absent(),
+    this.status = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        name = Value(name),
@@ -1956,6 +1992,7 @@ class ServicesCompanion extends UpdateCompanion<Service> {
     Expression<bool>? isActive,
     Expression<String>? icon,
     Expression<String>? color,
+    Expression<String>? status,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -1977,6 +2014,7 @@ class ServicesCompanion extends UpdateCompanion<Service> {
       if (isActive != null) 'is_active': isActive,
       if (icon != null) 'icon': icon,
       if (color != null) 'color': color,
+      if (status != null) 'status': status,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -1998,6 +2036,7 @@ class ServicesCompanion extends UpdateCompanion<Service> {
     Value<bool>? isActive,
     Value<String>? icon,
     Value<String>? color,
+    Value<String>? status,
     Value<int>? rowid,
   }) {
     return ServicesCompanion(
@@ -2018,6 +2057,7 @@ class ServicesCompanion extends UpdateCompanion<Service> {
       isActive: isActive ?? this.isActive,
       icon: icon ?? this.icon,
       color: color ?? this.color,
+      status: status ?? this.status,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -2075,6 +2115,9 @@ class ServicesCompanion extends UpdateCompanion<Service> {
     if (color.present) {
       map['color'] = Variable<String>(color.value);
     }
+    if (status.present) {
+      map['status'] = Variable<String>(status.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -2100,6 +2143,7 @@ class ServicesCompanion extends UpdateCompanion<Service> {
           ..write('isActive: $isActive, ')
           ..write('icon: $icon, ')
           ..write('color: $color, ')
+          ..write('status: $status, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -6083,6 +6127,7 @@ typedef $$ServicesTableCreateCompanionBuilder =
       Value<bool> isActive,
       Value<String> icon,
       Value<String> color,
+      Value<String> status,
       Value<int> rowid,
     });
 typedef $$ServicesTableUpdateCompanionBuilder =
@@ -6103,6 +6148,7 @@ typedef $$ServicesTableUpdateCompanionBuilder =
       Value<bool> isActive,
       Value<String> icon,
       Value<String> color,
+      Value<String> status,
       Value<int> rowid,
     });
 
@@ -6241,6 +6287,11 @@ class $$ServicesTableFilterComposer
 
   ColumnFilters<String> get color => $composableBuilder(
     column: $table.color,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get status => $composableBuilder(
+    column: $table.status,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -6395,6 +6446,11 @@ class $$ServicesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get status => $composableBuilder(
+    column: $table.status,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   $$AccountsTableOrderingComposer get accountId {
     final $$AccountsTableOrderingComposer composer = $composerBuilder(
       composer: this,
@@ -6496,6 +6552,9 @@ class $$ServicesTableAnnotationComposer
 
   GeneratedColumn<String> get color =>
       $composableBuilder(column: $table.color, builder: (column) => column);
+
+  GeneratedColumn<String> get status =>
+      $composableBuilder(column: $table.status, builder: (column) => column);
 
   $$AccountsTableAnnotationComposer get accountId {
     final $$AccountsTableAnnotationComposer composer = $composerBuilder(
@@ -6617,6 +6676,7 @@ class $$ServicesTableTableManager
                 Value<bool> isActive = const Value.absent(),
                 Value<String> icon = const Value.absent(),
                 Value<String> color = const Value.absent(),
+                Value<String> status = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => ServicesCompanion(
                 createdAt: createdAt,
@@ -6635,6 +6695,7 @@ class $$ServicesTableTableManager
                 isActive: isActive,
                 icon: icon,
                 color: color,
+                status: status,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -6655,6 +6716,7 @@ class $$ServicesTableTableManager
                 Value<bool> isActive = const Value.absent(),
                 Value<String> icon = const Value.absent(),
                 Value<String> color = const Value.absent(),
+                Value<String> status = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => ServicesCompanion.insert(
                 createdAt: createdAt,
@@ -6673,6 +6735,7 @@ class $$ServicesTableTableManager
                 isActive: isActive,
                 icon: icon,
                 color: color,
+                status: status,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0

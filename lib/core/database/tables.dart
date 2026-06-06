@@ -49,6 +49,7 @@ class Services extends Table with AuditMixin {
   BoolColumn get isActive => boolean().withDefault(const Constant(true))();
   TextColumn get icon => text().withDefault(const Constant('57680'))(); // default icon code
   TextColumn get color => text().withDefault(const Constant('#6C63FF'))();
+  TextColumn get status => text().withDefault(const Constant('active'))(); // active, late
 
   @override
   Set<Column> get primaryKey => {id};

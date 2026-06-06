@@ -115,7 +115,17 @@ class ServicesScreen extends ConsumerWidget {
                             color: isIncome ? Colors.green : Colors.redAccent,
                           ),
                         ),
-                        if (service.autoGenerateTransaction)
+                        if (service.status == 'late')
+                          ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.red,
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 0),
+                              minimumSize: const Size(60, 24),
+                            ),
+                            onPressed: () => _payLateService(context, ref, service),
+                            child: const Text('PAGAR', style: TextStyle(fontSize: 10, color: Colors.white)),
+                          )
+                        else if (service.autoGenerateTransaction)
                           const Icon(Icons.autorenew, size: 14, color: Colors.grey),
                       ],
                     ),
@@ -148,6 +158,97 @@ class ServicesScreen extends ConsumerWidget {
   }
 
 }
+
+  Future<void> _payLateService(BuildContext context, WidgetRef ref, Service service) async {
+    final surchargeController = TextEditingController();
+    await showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Pagar Servicio Atrasado'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text('Monto base: \$${service.amount.toStringAsFixed(2)}'),
+              const SizedBox(height: 16),
+              TextField(
+                controller: surchargeController,
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                decoration: const InputDecoration(labelText: 'Recargo por mora (Opcional)', hintText: 'Ej. 5.00'),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancelar')),
+            ElevatedButton(
+              onPressed: () async {
+                final surcharge = double.tryParse(surchargeController.text) ?? 0.0;
+                final totalAmount = service.amount + surcharge;
+                
+                final servicesDao = ref.read(servicesDaoProvider);
+                final transactionsDao = ref.read(transactionsDaoProvider);
+                
+                String accountId = service.accountId ?? '';
+                if (accountId.isEmpty) {
+                  final accounts = await ref.read(accountsDaoProvider).watchActiveAccounts().first;
+                  if (accounts.isNotEmpty) accountId = accounts.first.id;
+                }
+                if (accountId.isEmpty) {
+                  if (context.mounted) Navigator.pop(context);
+                  return;
+                }
+
+                // Generar transacción
+                final isIncome = service.type == 'income';
+                final notes = surcharge > 0 ? 'Monto original: \$${service.amount}. Recargo por mora: \$$surcharge' : null;
+                
+                await transactionsDao.createTransaction(
+                  TransactionsCompanion.insert(
+                    id: const Uuid().v4(),
+                    amount: totalAmount,
+                    date: DateTime.now(),
+                    type: service.type,
+                    accountId: accountId,
+                    serviceId: drift.Value(service.id),
+                    categoryId: drift.Value(service.categoryId),
+                    description: drift.Value('Pago Manual: ${service.name}'),
+                    notes: drift.Value(notes),
+                    isRecurring: const drift.Value(true),
+                  ),
+                  accountId,
+                  totalAmount,
+                  isIncome,
+                );
+
+                // Calcular próxima fecha
+                final now = DateTime.now();
+                DateTime nextDate = service.nextDate;
+                if (service.frequency == 'monthly') {
+                  nextDate = DateTime(now.year, now.month + 1, service.nextDate.day);
+                } else if (service.frequency.startsWith('weekly')) {
+                  nextDate = now.add(const Duration(days: 7)); // Simplificado para el pago manual
+                } else if (service.frequency == 'yearly') {
+                  nextDate = DateTime(now.year + 1, now.month, service.nextDate.day);
+                }
+
+                // Restablecer estado a active
+                await servicesDao.updateService(
+                  ServicesCompanion(
+                    id: drift.Value(service.id),
+                    nextDate: drift.Value(nextDate),
+                    status: const drift.Value('active'),
+                  ),
+                );
+
+                if (context.mounted) Navigator.pop(context);
+              },
+              child: const Text('Pagar'),
+            ),
+          ],
+        );
+      },
+    );
+  }
 
 final servicesProvider = StreamProvider<List<Service>>((ref) {
   return ref.watch(servicesDaoProvider).watchActiveServices();

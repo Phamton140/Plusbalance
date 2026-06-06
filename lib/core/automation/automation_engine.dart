@@ -14,7 +14,7 @@ final automationEngineProvider = FutureProvider<void>((ref) async {
   final now = DateTime.now();
 
   for (final service in activeServices) {
-    if (service.autoGenerateTransaction && service.nextDate.isBefore(now)) {
+    if (service.autoGenerateTransaction && service.nextDate.isBefore(now) && service.status != 'late') {
       // 1. Necesitamos saber la cuenta. Si no tiene, tomamos la primera activa
       String accountId = service.accountId ?? '';
       if (accountId.isEmpty) {
@@ -24,6 +24,23 @@ final automationEngineProvider = FutureProvider<void>((ref) async {
         } else {
           continue; // No hay cuentas para registrar el movimiento
         }
+      }
+
+      // Verificamos el saldo de la cuenta
+      final account = await (accountsDao.select(accountsDao.accounts)..where((a) => a.id.equals(accountId))).getSingleOrNull();
+      if (account == null) continue;
+
+      final isExpense = service.type == 'expense';
+      
+      if (isExpense && account.balance < service.amount) {
+        // No hay saldo suficiente, marcar como atrasado
+        await servicesDao.updateService(
+          service.copyWith(
+            status: 'late',
+            updatedAt: DateTime.now(),
+          ),
+        );
+        continue; // No generamos transacción ni avanzamos la fecha
       }
 
       // 2. Registrar la transacción
@@ -78,19 +95,20 @@ final automationEngineProvider = FutureProvider<void>((ref) async {
         nextDate = DateTime(now.year + 1, now.month, service.nextDate.day);
       } else if (service.frequency == 'once') {
         await servicesDao.updateService(
-          ServicesCompanion(
-            id: drift.Value(service.id),
-            isActive: const drift.Value(false),
+          service.copyWith(
+            isActive: false,
+            status: 'active',
+            updatedAt: DateTime.now(),
           ),
         );
         continue;
       }
 
-      // 4. Actualizar el servicio
       await servicesDao.updateService(
-        ServicesCompanion(
-          id: drift.Value(service.id),
-          nextDate: drift.Value(nextDate),
+        service.copyWith(
+          nextDate: nextDate,
+          status: 'active',
+          updatedAt: DateTime.now(),
         ),
       );
     }

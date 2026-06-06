@@ -1,4 +1,5 @@
-name: plus_balance
+
+name: read_file
 description: "A new Flutter project."
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
@@ -109,3 +110,4 @@ dependency_overrides:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
+

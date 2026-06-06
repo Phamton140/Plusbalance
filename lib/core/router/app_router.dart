@@ -7,6 +7,7 @@ import '../../features/categories/presentation/categories_screen.dart';
 import '../../features/services/presentation/services_screen.dart';
 import '../../features/transactions/presentation/transactions_list_screen.dart';
 import '../../features/goals/presentation/goals_screen.dart';
+import '../../features/notifications/presentation/notifications_screen.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
   return GoRouter(
@@ -39,6 +40,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/goals',
         builder: (context, state) => const GoalsScreen(),
+      ),
+      GoRoute(
+        path: '/notifications',
+        builder: (context, state) => const NotificationsScreen(),
       ),
     ],
   );

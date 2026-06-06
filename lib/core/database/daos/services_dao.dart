@@ -12,14 +12,21 @@ class ServicesDao extends DatabaseAccessor<AppDatabase> with _$ServicesDaoMixin 
     return (select(services)..where((t) => t.isActive.equals(true))).watch();
   }
 
+  Stream<List<Service>> watchLateServices() {
+    return (select(services)
+      ..where((t) => t.isActive.equals(true))
+      ..where((t) => t.status.equals('late'))
+    ).watch();
+  }
+
   Stream<List<Service>> watchUpcomingServices() {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
-    final next3Days = today.add(const Duration(days: 3, hours: 23, minutes: 59, seconds: 59));
+    final next7Days = today.add(const Duration(days: 7, hours: 23, minutes: 59, seconds: 59));
     
     return (select(services)
       ..where((t) => t.isActive.equals(true))
-      ..where((t) => t.nextDate.isBetweenValues(today, next3Days))
+      ..where((t) => t.nextDate.isBetweenValues(today, next7Days))
       ..orderBy([(t) => OrderingTerm(expression: t.nextDate, mode: OrderingMode.asc)])
     ).watch();
   }
