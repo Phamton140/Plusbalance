@@ -93,13 +93,14 @@ class _AccountFormScreenState extends ConsumerState<AccountFormScreen> {
   }
 
   Future<void> _save() async {
-    final name = _nameController.text.trim();
-    final bank = _bankController.text.trim();
+    final isLocked = _isEfectivoDefault;
+    final name = isLocked ? 'Efectivo' : _nameController.text.trim();
+    final bank = isLocked ? 'Efectivo' : _bankController.text.trim();
     final balance = double.tryParse(_balanceController.text) ?? 0.0;
     final rechargeAmount = double.tryParse(_rechargeAmountController.text);
     final rechargeAmount2 = double.tryParse(_rechargeAmountController2.text);
 
-    if (name.isEmpty) {
+    if (!isLocked && name.isEmpty) {
       ScaffoldMessenger.of(context)
           .showSnackBar(const SnackBar(content: Text('El alias es obligatorio')));
       return;
@@ -187,13 +188,21 @@ class _AccountFormScreenState extends ConsumerState<AccountFormScreen> {
     if (mounted) Navigator.pop(context);
   }
 
+  bool get _isEfectivoDefault =>
+      widget.account?.id == efectivoDefaultAccountId;
+
   @override
   Widget build(BuildContext context) {
     final hasRecharge = _rechargeFrequency != 'none';
+    final isLocked = _isEfectivoDefault;
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.account == null ? 'Nueva Cuenta' : 'Editar Cuenta'),
+        title: Text(widget.account == null
+            ? 'Nueva Cuenta'
+            : isLocked
+                ? 'Efectivo'
+                : 'Editar Cuenta'),
       ),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -201,18 +210,44 @@ class _AccountFormScreenState extends ConsumerState<AccountFormScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              TextField(enableSuggestions: false, autocorrect: false,
-                controller: _bankController,
-                decoration: const InputDecoration(
-                    labelText: 'Institución (Ej. Banco BHD)', hintText: 'Banco'),
-              ),
-              const SizedBox(height: 16),
-              TextField(enableSuggestions: false, autocorrect: false,
-                controller: _nameController,
-                decoration: const InputDecoration(
-                    labelText: 'Alias (Ej. Tarjeta Gold)', hintText: 'Alias de cuenta'),
-              ),
-              const SizedBox(height: 16),
+              if (isLocked) ...[
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.teal.withValues(alpha: 0.1),
+                    border: Border.all(color: Colors.teal.withValues(alpha: 0.4)),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Row(
+                    children: [
+                      Icon(Icons.lock_outline, color: Colors.teal),
+                      SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          'La cuenta de efectivo es única y predeterminada. '
+                          'Solo puedes modificar su saldo y la recurrencia de recarga.',
+                          style: TextStyle(fontSize: 12, color: Colors.teal),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+              ] else ...[
+                TextField(enableSuggestions: false, autocorrect: false,
+                  controller: _bankController,
+                  decoration: const InputDecoration(
+                      labelText: 'Institución (Ej. Banco BHD)', hintText: 'Banco'),
+                ),
+                const SizedBox(height: 16),
+                TextField(enableSuggestions: false, autocorrect: false,
+                  controller: _nameController,
+                  decoration: const InputDecoration(
+                      labelText: 'Alias (Ej. Tarjeta Gold)', hintText: 'Alias de cuenta'),
+                ),
+                const SizedBox(height: 16),
+              ],
               TextField(enableSuggestions: false, autocorrect: false,
                 controller: _balanceController,
                 keyboardType: const TextInputType.numberWithOptions(decimal: true),
@@ -224,41 +259,43 @@ class _AccountFormScreenState extends ConsumerState<AccountFormScreen> {
                 },
                 decoration: const InputDecoration(labelText: 'Saldo Inicial / Actual'),
               ),
-              const SizedBox(height: 24),
-              const Text('Color de la tarjeta:',
-                  style:
-                      TextStyle(fontSize: 14, color: Colors.grey, fontWeight: FontWeight.w500)),
-              const SizedBox(height: 12),
-              Wrap(
-                spacing: 12,
-                runSpacing: 12,
-                children: [
-                  _ColorPickerOption(
-                      colorHex: '#1a1a2e',
-                      isSelected: _selectedColor == '#1a1a2e',
-                      onTap: () => setState(() => _selectedColor = '#1a1a2e')),
-                  _ColorPickerOption(
-                      colorHex: '#C5A866',
-                      isSelected: _selectedColor == '#C5A866',
-                      onTap: () => setState(() => _selectedColor = '#C5A866')),
-                  _ColorPickerOption(
-                      colorHex: '#2E7D32',
-                      isSelected: _selectedColor == '#2E7D32',
-                      onTap: () => setState(() => _selectedColor = '#2E7D32')),
-                  _ColorPickerOption(
-                      colorHex: '#1565C0',
-                      isSelected: _selectedColor == '#1565C0',
-                      onTap: () => setState(() => _selectedColor = '#1565C0')),
-                  _ColorPickerOption(
-                      colorHex: '#D32F2F',
-                      isSelected: _selectedColor == '#D32F2F',
-                      onTap: () => setState(() => _selectedColor = '#D32F2F')),
-                  _ColorPickerOption(
-                      colorHex: '#8E24AA',
-                      isSelected: _selectedColor == '#8E24AA',
-                      onTap: () => setState(() => _selectedColor = '#8E24AA')),
-                ],
-              ),
+              if (!isLocked) ...[
+                const SizedBox(height: 24),
+                const Text('Color de la tarjeta:',
+                    style:
+                        TextStyle(fontSize: 14, color: Colors.grey, fontWeight: FontWeight.w500)),
+                const SizedBox(height: 12),
+                Wrap(
+                  spacing: 12,
+                  runSpacing: 12,
+                  children: [
+                    _ColorPickerOption(
+                        colorHex: '#1a1a2e',
+                        isSelected: _selectedColor == '#1a1a2e',
+                        onTap: () => setState(() => _selectedColor = '#1a1a2e')),
+                    _ColorPickerOption(
+                        colorHex: '#C5A866',
+                        isSelected: _selectedColor == '#C5A866',
+                        onTap: () => setState(() => _selectedColor = '#C5A866')),
+                    _ColorPickerOption(
+                        colorHex: '#2E7D32',
+                        isSelected: _selectedColor == '#2E7D32',
+                        onTap: () => setState(() => _selectedColor = '#2E7D32')),
+                    _ColorPickerOption(
+                        colorHex: '#1565C0',
+                        isSelected: _selectedColor == '#1565C0',
+                        onTap: () => setState(() => _selectedColor = '#1565C0')),
+                    _ColorPickerOption(
+                        colorHex: '#D32F2F',
+                        isSelected: _selectedColor == '#D32F2F',
+                        onTap: () => setState(() => _selectedColor = '#D32F2F')),
+                    _ColorPickerOption(
+                        colorHex: '#8E24AA',
+                        isSelected: _selectedColor == '#8E24AA',
+                        onTap: () => setState(() => _selectedColor = '#8E24AA')),
+                  ],
+                ),
+              ],
               const SizedBox(height: 32),
 
               // -------- Sección de Recurrencia de Recarga (opcional) --------

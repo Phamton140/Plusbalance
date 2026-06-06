@@ -14,6 +14,10 @@ const String goalDefaultCategoryId = 'goal-default-category';
 const String goalDefaultCategoryName = 'Ahorro / Metas';
 const String goalDefaultCategoryColor = '#00D4AA';
 
+const String efectivoDefaultAccountId = 'efectivo-default';
+const String transferenciaDefaultCategoryId = 'default-cat-transferencia';
+const String transferenciaDefaultCategoryName = 'Transferencia';
+
 class _DefaultCategory {
   final String id;
   final String name;
@@ -31,6 +35,7 @@ const List<_DefaultCategory> _defaultCategories = [
   _DefaultCategory('default-cat-viajes', 'Viajes', Icons.flight, '#00BCD4'),
   _DefaultCategory('default-cat-compras', 'Compras', Icons.shopping_cart, '#6C63FF'),
   _DefaultCategory(goalDefaultCategoryId, goalDefaultCategoryName, Icons.savings, goalDefaultCategoryColor),
+  _DefaultCategory(transferenciaDefaultCategoryId, transferenciaDefaultCategoryName, Icons.sync_alt, '#6C63FF'),
 ];
 
 @DriftDatabase(tables: [
@@ -48,7 +53,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 6;
+  int get schemaVersion => 7;
 
   @override
   MigrationStrategy get migration {
@@ -56,8 +61,9 @@ class AppDatabase extends _$AppDatabase {
       onCreate: (Migrator m) async {
         await m.createAll();
         await into(accounts).insert(AccountsCompanion.insert(
-          id: 'efectivo-default',
+          id: efectivoDefaultAccountId,
           name: 'Efectivo',
+          institutionName: const Value('Efectivo'),
           type: 'cash',
           color: const Value('#9E9E9E'),
         ));
@@ -84,6 +90,16 @@ class AppDatabase extends _$AppDatabase {
         if (from < 6) {
           await m.addColumn(accounts, accounts.rechargeNextDate2);
           await m.addColumn(accounts, accounts.rechargeAmount2);
+        }
+        if (from < 7) {
+          await _ensureDefaultCategories();
+          // La cuenta efectivo por defecto debe tener institutionName
+          // 'Efectivo' para que se muestre igual al nombre.
+          await (update(accounts)
+                ..where((a) => a.id.equals(efectivoDefaultAccountId)))
+              .write(const AccountsCompanion(
+            institutionName: Value('Efectivo'),
+          ));
         }
       },
       beforeOpen: (details) async {

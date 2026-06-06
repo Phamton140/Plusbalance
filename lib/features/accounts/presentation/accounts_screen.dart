@@ -219,6 +219,7 @@ class _AccountCard extends ConsumerWidget {
   }
 
   void _showOptions(BuildContext context, WidgetRef ref, Account account, bool isDefault) {
+    final isEfectivo = account.id == efectivoDefaultAccountId;
     showModalBottomSheet(
       context: context,
       builder: (context) {
@@ -239,8 +240,14 @@ class _AccountCard extends ConsumerWidget {
                 },
               ),
               ListTile(
-                leading: const Icon(Icons.edit, color: Colors.blue),
-                title: const Text('Editar Cuenta', style: TextStyle(color: Colors.blue)),
+                leading: Icon(isEfectivo ? Icons.tune : Icons.edit,
+                    color: isEfectivo ? Colors.teal : Colors.blue),
+                title: Text(
+                    isEfectivo
+                        ? 'Ajustar saldo / recurrencia'
+                        : 'Editar Cuenta',
+                    style: TextStyle(
+                        color: isEfectivo ? Colors.teal : Colors.blue)),
                 onTap: () {
                   Navigator.pop(context);
                   Navigator.push(
@@ -249,40 +256,41 @@ class _AccountCard extends ConsumerWidget {
                   );
                 },
               ),
-              ListTile(
-                leading: const Icon(Icons.delete, color: Colors.red),
-                title: const Text('Eliminar Cuenta', style: TextStyle(color: Colors.red)),
-                onTap: () async {
-                  final confirm = await showDialog<bool>(
-                    context: context,
-                    builder: (context) => AlertDialog(
-                      title: const Text('Eliminar Cuenta'),
-                      content: const Text('¿Estás seguro de borrarla? Si tiene transacciones en el historial, la operación será bloqueada.'),
-                      actions: [
-                        TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancelar')),
-                        ElevatedButton(
-                          style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-                          onPressed: () => Navigator.pop(context, true), 
-                          child: const Text('Eliminar')
-                        ),
-                      ],
-                    )
-                  );
-                  
-                  if (confirm != true) return;
-                  
-                  final txs = await ref.read(transactionsDaoProvider).watchRecentTransactions(limit: 500).first;
-                  final hasTxs = txs.any((t) => t.accountId == account.id);
-                  if (hasTxs && context.mounted) {
-                    Navigator.pop(context);
-                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('No se puede eliminar porque tiene transacciones vinculadas.')));
-                    return;
-                  }
-                  
-                  await ref.read(accountsDaoProvider).deleteAccount(account.id);
-                  if (context.mounted) Navigator.pop(context);
-                },
-              ),
+              if (!isEfectivo)
+                ListTile(
+                  leading: const Icon(Icons.delete, color: Colors.red),
+                  title: const Text('Eliminar Cuenta', style: TextStyle(color: Colors.red)),
+                  onTap: () async {
+                    final confirm = await showDialog<bool>(
+                      context: context,
+                      builder: (context) => AlertDialog(
+                        title: const Text('Eliminar Cuenta'),
+                        content: const Text('¿Estás seguro de borrarla? Si tiene transacciones en el historial, la operación será bloqueada.'),
+                        actions: [
+                          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancelar')),
+                          ElevatedButton(
+                            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                            onPressed: () => Navigator.pop(context, true),
+                            child: const Text('Eliminar')
+                          ),
+                        ],
+                      )
+                    );
+
+                    if (confirm != true) return;
+
+                    final txs = await ref.read(transactionsDaoProvider).watchRecentTransactions(limit: 500).first;
+                    final hasTxs = txs.any((t) => t.accountId == account.id);
+                    if (hasTxs && context.mounted) {
+                      Navigator.pop(context);
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('No se puede eliminar porque tiene transacciones vinculadas.')));
+                      return;
+                    }
+
+                    await ref.read(accountsDaoProvider).deleteAccount(account.id);
+                    if (context.mounted) Navigator.pop(context);
+                  },
+                ),
             ],
           ),
         );

@@ -49,8 +49,9 @@ class PdfService {
     final balanceNeto = totalIngresos - totalGastos;
 
     final DateFormat dateFormatter = DateFormat('dd/MM/yyyy');
+    final DateFormat dateTimeFormatter = DateFormat('dd/MM/yyyy HH:mm');
     final String periodText = (startDate != null && endDate != null)
-        ? 'Periodo: del ${dateFormatter.format(startDate)} al ${dateFormatter.format(endDate)}'
+        ? 'Periodo: del ${dateTimeFormatter.format(startDate)} al ${dateTimeFormatter.format(endDate)}'
         : 'Periodo: Histórico completo';
 
     String nombreCuenta(String id) {
@@ -99,7 +100,7 @@ class PdfService {
 
     final List<List<dynamic>> datosTabla = sortedTx.map((tx) {
       return [
-        dateFormatter.format(tx.date),
+        dateTimeFormatter.format(tx.date),
         tipoTexto(tx.type),
         nombreCuenta(tx.accountId),
         nombreCategoria(tx.categoryId),

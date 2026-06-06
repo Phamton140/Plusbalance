@@ -26,7 +26,6 @@ class TransactionsListScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final filter = ref.watch(transactionFilterProvider);
     final transactionsAsync = ref.watch(filteredTransactionsProvider(filter));
-    final dateFormat = DateFormat('dd MMM yyyy, HH:mm');
 
     return Scaffold(
       appBar: AppBar(
@@ -121,13 +120,73 @@ class TransactionsListScreen extends ConsumerWidget {
               ),
             );
           }
+          // Agrupamos por día para mostrar un encabezado por fecha y
+          // que el usuario pueda ir viendo el histórico organizado al
+          // hacer scroll. Como la lista ya viene ordenada por fecha
+          // descendente, basta con detectar cambios de día.
+          final dayHeaderFmt = DateFormat('EEEE d \'de\' MMMM, yyyy', 'es');
+          // Si la localización 'es' no está inicializada, caemos a un
+          // formato manual largo.
+          String manualDayHeader(DateTime d) {
+            const meses = [
+              'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
+              'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'
+            ];
+            const dias = [
+              'Lunes', 'Martes', 'Miércoles', 'Jueves',
+              'Viernes', 'Sábado', 'Domingo'
+            ];
+            return '${dias[d.weekday - 1]} ${d.day} de ${meses[d.month - 1]}, ${d.year}';
+          }
+
+          final items = <_HistoryItem>[];
+          DateTime? lastDay;
+          for (final tx in transactions) {
+            final d = DateTime(tx.date.year, tx.date.month, tx.date.day);
+            if (lastDay == null || d != lastDay) {
+              String header;
+              try {
+                header = dayHeaderFmt.format(d);
+              } catch (_) {
+                header = manualDayHeader(d);
+              }
+              items.add(_HistoryItem.header(header, d));
+              lastDay = d;
+            }
+            items.add(_HistoryItem.tx(tx));
+          }
+
           return ListView.builder(
             padding: const EdgeInsets.all(16),
-            itemCount: transactions.length,
+            itemCount: items.length,
             itemBuilder: (context, index) {
-              final tx = transactions[index];
+              final item = items[index];
+              if (item.header != null) {
+                return Padding(
+                  padding: EdgeInsets.only(
+                      top: index == 0 ? 0 : 12, bottom: 8),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.calendar_today, size: 14, color: Colors.teal),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          item.header!,
+                          style: const TextStyle(
+                            color: Colors.teal,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }
+              final tx = item.tx!;
               final isIncome = tx.type == 'income';
-              
+              final isTransfer = tx.type == 'transfer';
+
               return Dismissible(
                 key: Key(tx.id),
                 direction: DismissDirection.endToStart,
@@ -148,7 +207,7 @@ class TransactionsListScreen extends ConsumerWidget {
                           TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text("Cancelar")),
                           ElevatedButton(
                             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-                            onPressed: () => Navigator.of(context).pop(true), 
+                            onPressed: () => Navigator.of(context).pop(true),
                             child: const Text("Eliminar")
                           ),
                         ],
@@ -165,23 +224,52 @@ class TransactionsListScreen extends ConsumerWidget {
                   }
                 },
                 child: Card(
-                  margin: const EdgeInsets.only(bottom: 12),
+                  margin: const EdgeInsets.only(bottom: 6),
                   child: ListTile(
                     leading: CircleAvatar(
-                      backgroundColor: isIncome ? Colors.green.withValues(alpha: 0.2) : Colors.red.withValues(alpha: 0.2),
+                      backgroundColor: isIncome
+                          ? Colors.green.withValues(alpha: 0.2)
+                          : isTransfer
+                              ? Colors.blue.withValues(alpha: 0.2)
+                              : Colors.red.withValues(alpha: 0.2),
                       child: Icon(
-                        isIncome ? Icons.arrow_upward : Icons.arrow_downward,
-                        color: isIncome ? Colors.green : Colors.redAccent,
+                        isIncome
+                            ? Icons.arrow_upward
+                            : isTransfer
+                                ? Icons.sync_alt
+                                : Icons.arrow_downward,
+                        color: isIncome
+                            ? Colors.green
+                            : isTransfer
+                                ? Colors.blue
+                                : Colors.redAccent,
                       ),
                     ),
-                    title: Text(tx.description ?? (isIncome ? 'Ingreso' : 'Gasto'), style: const TextStyle(fontWeight: FontWeight.bold)),
-                    subtitle: Text(dateFormat.format(tx.date), style: const TextStyle(fontSize: 12)),
+                    title: Text(
+                      tx.description ??
+                          (isTransfer
+                              ? 'Transferencia'
+                              : isIncome
+                                  ? 'Ingreso'
+                                  : 'Gasto'),
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    subtitle: Text(
+                      DateFormat('HH:mm').format(tx.date),
+                      style: const TextStyle(fontSize: 12),
+                    ),
                     trailing: Text(
-                      '${isIncome ? '+' : '-'}\$${tx.amount.toStringAsFixed(2)}',
+                      isTransfer
+                          ? '\$${tx.amount.toStringAsFixed(2)}'
+                          : '${isIncome ? '+' : '-'}\$${tx.amount.toStringAsFixed(2)}',
                       style: TextStyle(
-                        fontWeight: FontWeight.w900, 
+                        fontWeight: FontWeight.w900,
                         fontSize: 16,
-                        color: isIncome ? Colors.green : Colors.redAccent,
+                        color: isIncome
+                            ? Colors.green
+                            : isTransfer
+                                ? Colors.blue
+                                : Colors.redAccent,
                       ),
                     ),
                   ),
@@ -227,3 +315,14 @@ final filteredTransactionsProvider = StreamProvider.family<List<Transaction>, St
     return dao.watchTransactionsByType(filter, limit: 500);
   }
 });
+
+/// Item intermedio para la lista del historial: o es un encabezado de
+/// día o es la tarjeta de una transacción. Permite renderizar un
+/// ListView plano agrupado por fecha.
+class _HistoryItem {
+  final String? header;
+  final DateTime? day;
+  final Transaction? tx;
+  const _HistoryItem.header(this.header, this.day) : tx = null;
+  const _HistoryItem.tx(this.tx) : header = null, day = null;
+}

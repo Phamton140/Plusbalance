@@ -70,9 +70,11 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
       if (_selectedAccountId == _thirdPartyId && _destinationAccountId == _thirdPartyId) {
         return;
       }
-      
+
       final descriptionText = _thirdPartyController.text.trim();
-      final finalDescription = descriptionText.isNotEmpty ? descriptionText : 'Tercero';
+      // Para transferencias la categoria es siempre 'Transferencia'
+      // (no se muestra el dropdown en la UI; se asigna aqui).
+      const transferCategoryId = transferenciaDefaultCategoryId;
 
       if (_selectedAccountId == _thirdPartyId) {
         // Ingreso desde un tercero
@@ -83,7 +85,10 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
             date: DateTime.now(),
             type: 'income',
             accountId: _destinationAccountId!,
-            description: drift.Value('De: $finalDescription'),
+            categoryId: const drift.Value(transferCategoryId),
+            description: drift.Value(descriptionText.isNotEmpty
+                ? descriptionText
+                : 'Tercero'),
           ),
           _destinationAccountId!,
           amountDouble,
@@ -98,7 +103,10 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
             date: DateTime.now(),
             type: 'expense',
             accountId: _selectedAccountId!,
-            description: drift.Value('Para: $finalDescription'),
+            categoryId: const drift.Value(transferCategoryId),
+            description: drift.Value(descriptionText.isNotEmpty
+                ? descriptionText
+                : 'Tercero'),
           ),
           _selectedAccountId!,
           amountDouble,
@@ -113,6 +121,7 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
             date: DateTime.now(),
             type: 'transfer',
             accountId: _selectedAccountId!,
+            categoryId: const drift.Value(transferCategoryId),
             description: const drift.Value('Transferencia enviada'),
           ),
           _selectedAccountId!,
@@ -126,6 +135,7 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
             date: DateTime.now(),
             type: 'transfer',
             accountId: _destinationAccountId!,
+            categoryId: const drift.Value(transferCategoryId),
             description: const drift.Value('Transferencia recibida'),
           ),
           _destinationAccountId!,
@@ -261,32 +271,66 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
                     _buildAccountSelector(accounts, _selectedAccountId, (val) => setState(() => _selectedAccountId = val), 'Cuenta', requireBalance: _type == 'expense'),
                   
                   const SizedBox(height: 24),
-                  TextField(enableSuggestions: false, autocorrect: false, 
+                  TextField(enableSuggestions: false, autocorrect: false,
                     controller: _descController,
                     decoration: const InputDecoration(labelText: 'Descripción (Opcional)'),
                   ),
-                  const SizedBox(height: 24),
-                  Consumer(
-                    builder: (context, ref, child) {
-                      final catsAsync = ref.watch(allCategoriesStreamProvider);
-                      return catsAsync.when(
-                        data: (cats) {
-                          return DropdownButtonFormField<String>(
-                            isExpanded: true,
-                            value: _selectedCategoryId,
-                            decoration: const InputDecoration(labelText: 'Categoría'),
-                            items: [
-                              const DropdownMenuItem(value: null, child: Text('Ninguna')),
-                              ...cats.map((c) => DropdownMenuItem(value: c.id, child: Text(c.name, overflow: TextOverflow.ellipsis, style: TextStyle(color: Color(int.parse(c.color.replaceAll('#', '0xFF'))))))),
-                            ],
-                            onChanged: (val) => setState(() => _selectedCategoryId = val),
-                          );
-                        },
-                        loading: () => const Center(child: CircularProgressIndicator()),
-                        error: (_, __) => const SizedBox(),
-                      );
-                    }
-                  ),
+                  // El campo de categoría se oculta en transferencias porque
+                  // se asigna automáticamente 'Transferencia'.
+                  if (_type != 'transfer') ...[
+                    const SizedBox(height: 24),
+                    Consumer(
+                      builder: (context, ref, child) {
+                        final catsAsync = ref.watch(allCategoriesStreamProvider);
+                        return catsAsync.when(
+                          data: (cats) {
+                            // Filtramos la categoría 'Transferencia' para que
+                            // no pueda elegirse manualmente (es exclusiva de
+                            // transferencias entre cuentas / hacia terceros).
+                            final filtered = cats
+                                .where((c) => c.id != transferenciaDefaultCategoryId)
+                                .toList();
+                            return DropdownButtonFormField<String>(
+                              isExpanded: true,
+                              value: filtered.any((c) => c.id == _selectedCategoryId)
+                                  ? _selectedCategoryId
+                                  : null,
+                              decoration: const InputDecoration(labelText: 'Categoría'),
+                              items: [
+                                const DropdownMenuItem(value: null, child: Text('Ninguna')),
+                                ...filtered.map((c) => DropdownMenuItem(
+                                      value: c.id,
+                                      child: Text(c.name,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: TextStyle(
+                                              color: Color(int.parse(
+                                                  c.color.replaceAll('#', '0xFF'))))),
+                                    )),
+                              ],
+                              onChanged: (val) => setState(() => _selectedCategoryId = val),
+                            );
+                          },
+                          loading: () => const Center(child: CircularProgressIndicator()),
+                          error: (_, __) => const SizedBox(),
+                        );
+                      }
+                    ),
+                  ] else ...[
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        const Icon(Icons.sync_alt, size: 16, color: Colors.teal),
+                        const SizedBox(width: 6),
+                        Text(
+                          'Categoría automática: $transferenciaDefaultCategoryName',
+                          style: const TextStyle(
+                              fontSize: 12,
+                              color: Colors.teal,
+                              fontWeight: FontWeight.w600),
+                        ),
+                      ],
+                    ),
+                  ],
                   const SizedBox(height: 48),
                   SizedBox(
                     width: double.infinity,
