@@ -25,8 +25,19 @@ class AuthController extends Notifier<AuthState> {
   }
 
   Future<void> _bootstrap() async {
-    final hasPin = await PinService.instance.isPinSet();
-    state = AuthState(hasPin ? AuthStatus.locked : AuthStatus.needsSetup);
+    try {
+      final hasPin = await PinService.instance.isPinSet().timeout(
+            const Duration(seconds: 5),
+            onTimeout: () => false,
+          );
+      state = AuthState(hasPin ? AuthStatus.locked : AuthStatus.needsSetup);
+    } catch (e, st) {
+      // Si el almacenamiento seguro falla (ej. configuración de Android
+      // faltante), no dejamos la app pegada en el splash: caemos a
+      // "necesita configurar PIN" y mostramos un error al usuario.
+      debugPrint('AuthController._bootstrap error: $e\n$st');
+      state = const AuthState(AuthStatus.needsSetup);
+    }
   }
 
   Future<bool> setupPin(String pin) async {

@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 /// Servicio responsable de almacenar y verificar el PIN de acceso a la app.
@@ -15,8 +16,13 @@ class PinService {
   static const _pinKey = 'app_lock_pin';
 
   Future<bool> isPinSet() async {
-    final value = await _storage.read(key: _pinKey);
-    return value != null && value.isNotEmpty;
+    try {
+      final value = await _storage.read(key: _pinKey);
+      return value != null && value.isNotEmpty;
+    } catch (e, st) {
+      debugPrint('PinService.isPinSet error: $e\n$st');
+      return false;
+    }
   }
 
   Future<void> setPin(String pin) async {
@@ -24,12 +30,21 @@ class PinService {
   }
 
   Future<bool> verifyPin(String pin) async {
-    final stored = await _storage.read(key: _pinKey);
-    if (stored == null) return false;
-    return stored == pin;
+    try {
+      final stored = await _storage.read(key: _pinKey);
+      if (stored == null) return false;
+      return stored == pin;
+    } catch (e, st) {
+      debugPrint('PinService.verifyPin error: $e\n$st');
+      return false;
+    }
   }
 
   Future<void> removePin() async {
-    await _storage.delete(key: _pinKey);
+    try {
+      await _storage.delete(key: _pinKey);
+    } catch (e, st) {
+      debugPrint('PinService.removePin error: $e\n$st');
+    }
   }
 }
