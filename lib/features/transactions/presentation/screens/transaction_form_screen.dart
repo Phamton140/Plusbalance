@@ -211,6 +211,15 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
                   ),
                   const SizedBox(height: 24),
                   SegmentedButton<String>(
+                    showSelectedIcon: false,
+                    style: ButtonStyle(
+                      padding: WidgetStateProperty.all(
+                        const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      ),
+                      textStyle: WidgetStateProperty.all(
+                        const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                      ),
+                    ),
                     segments: const [
                       ButtonSegment(value: 'expense', label: Text('Gasto')),
                       ButtonSegment(value: 'income', label: Text('Ingreso')),
