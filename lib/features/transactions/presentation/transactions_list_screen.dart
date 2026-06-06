@@ -49,8 +49,17 @@ class TransactionsListScreen extends ConsumerWidget {
               final db = ref.read(databaseProvider);
               List<Transaction> txs;
               if (pickedRange != null) {
+                // El selector devuelve el final con hora 00:00, lo extendemos
+                // al final del día para que las transacciones del último día
+                // seleccionado sí se incluyan.
+                final endOfDay = DateTime(
+                  pickedRange.end.year,
+                  pickedRange.end.month,
+                  pickedRange.end.day,
+                  23, 59, 59, 999,
+                );
                 txs = await (db.select(db.transactions)
-                  ..where((t) => t.date.isBetweenValues(pickedRange.start, pickedRange.end))
+                  ..where((t) => t.date.isBetweenValues(pickedRange.start, endOfDay))
                   ..orderBy([(t) => drift.OrderingTerm(expression: t.date, mode: drift.OrderingMode.desc)])
                 ).get();
               } else {
@@ -60,6 +69,7 @@ class TransactionsListScreen extends ConsumerWidget {
               }
               final accounts = await db.select(db.accounts).get();
               final categories = await db.select(db.categories).get();
+              final userName = await ref.read(settingsDaoProvider).getSetting('profile_username');
 
               await PdfService.generateAndPrintTransactionsReport(
                 transactions: txs,
@@ -67,6 +77,7 @@ class TransactionsListScreen extends ConsumerWidget {
                 categories: categories,
                 startDate: pickedRange?.start,
                 endDate: pickedRange?.end,
+                userName: userName,
               );
             },
           )

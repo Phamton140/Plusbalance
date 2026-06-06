@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/theme_provider.dart';
 import '../../../core/providers/database_provider.dart';
+import '../../auth/presentation/pin_screen.dart';
 import 'screens/edit_name_screen.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
@@ -103,6 +104,18 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   value: themeMode == ThemeMode.dark,
                   onChanged: (val) {
                     ref.read(themeProvider.notifier).toggleTheme();
+                  },
+                ),
+                const Divider(height: 1),
+                ListTile(
+                  leading: const Icon(Icons.lock_outline),
+                  title: const Text('Cambiar PIN de acceso'),
+                  subtitle: const Text('Actualiza tu PIN de 6 dígitos'),
+                  onTap: () async {
+                    await Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const PinScreen(forChange: true)),
+                    );
                   },
                 ),
                 const Divider(height: 1),

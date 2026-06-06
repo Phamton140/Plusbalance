@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'core/theme/app_theme.dart';
 import 'core/theme/theme_provider.dart';
 import 'core/router/app_router.dart';
+import 'features/auth/presentation/pin_screen.dart';
+import 'features/auth/providers/auth_providers.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -13,14 +15,42 @@ void main() {
   );
 }
 
-class PlusBalanceApp extends ConsumerWidget {
+class PlusBalanceApp extends ConsumerStatefulWidget {
   const PlusBalanceApp({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final router = ref.watch(appRouterProvider);
-    final themeMode = ref.watch(themeProvider);
+  ConsumerState<PlusBalanceApp> createState() => _PlusBalanceAppState();
+}
 
+class _PlusBalanceAppState extends ConsumerState<PlusBalanceApp> {
+  @override
+  Widget build(BuildContext context) {
+    final themeMode = ref.watch(themeProvider);
+    final auth = ref.watch(authStateProvider);
+
+    if (auth.isLoading) {
+      return MaterialApp(
+        title: '+Balance',
+        debugShowCheckedModeBanner: false,
+        theme: AppTheme.lightTheme,
+        darkTheme: AppTheme.darkTheme,
+        themeMode: themeMode,
+        home: const _SplashScreen(),
+      );
+    }
+
+    if (!auth.isAuthenticated) {
+      return MaterialApp(
+        title: '+Balance',
+        debugShowCheckedModeBanner: false,
+        theme: AppTheme.lightTheme,
+        darkTheme: AppTheme.darkTheme,
+        themeMode: themeMode,
+        home: const PinScreen(),
+      );
+    }
+
+    final router = ref.watch(appRouterProvider);
     return MaterialApp.router(
       title: '+Balance',
       debugShowCheckedModeBanner: false,
@@ -28,6 +58,17 @@ class PlusBalanceApp extends ConsumerWidget {
       darkTheme: AppTheme.darkTheme,
       themeMode: themeMode,
       routerConfig: router,
+    );
+  }
+}
+
+class _SplashScreen extends StatelessWidget {
+  const _SplashScreen();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Scaffold(
+      body: Center(child: CircularProgressIndicator()),
     );
   }
 }

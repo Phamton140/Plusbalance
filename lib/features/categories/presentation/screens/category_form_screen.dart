@@ -4,6 +4,7 @@ import 'package:uuid/uuid.dart';
 import 'package:drift/drift.dart' as drift;
 import '../../../../core/database/app_database.dart';
 import '../../../../core/providers/database_provider.dart';
+import '../../../../core/theme/category_palette.dart';
 
 class CategoryFormScreen extends ConsumerStatefulWidget {
   final Category? category;
@@ -17,29 +18,21 @@ class CategoryFormScreen extends ConsumerStatefulWidget {
 class _CategoryFormScreenState extends ConsumerState<CategoryFormScreen> {
   late TextEditingController _nameController;
   late String _selectedIcon;
+  String? _selectedColor;
 
-  // Icons: shopping_cart, restaurant, directions_bus (Autobús), movie, medical_services, home, church, flight
   final List<IconData> _icons = [
-    Icons.shopping_cart, 
-    Icons.restaurant, 
-    Icons.directions_bus, 
-    Icons.movie, 
-    Icons.medical_services, 
+    Icons.shopping_cart,
+    Icons.restaurant,
+    Icons.directions_bus,
+    Icons.movie,
+    Icons.medical_services,
     Icons.home,
     Icons.church,
     Icons.flight,
-  ];
-
-  // Colors mapped to the index of the icon
-  final List<String> _iconColors = [
-    '#6C63FF', // shopping_cart
-    '#00D4AA', // restaurant
-    '#FF6B6B', // directions_bus
-    '#FCA311', // movie
-    '#4D96FF', // medical_services
-    '#9D4EDD', // home
-    '#795548', // church
-    '#00BCD4', // flight
+    Icons.fitness_center,
+    Icons.school,
+    Icons.pets,
+    Icons.sports_esports,
   ];
 
   @override
@@ -47,6 +40,7 @@ class _CategoryFormScreenState extends ConsumerState<CategoryFormScreen> {
     super.initState();
     _nameController = TextEditingController(text: widget.category?.name ?? '');
     _selectedIcon = widget.category?.icon ?? _icons[0].codePoint.toString();
+    _selectedColor = widget.category?.color;
   }
 
   @override
@@ -58,27 +52,46 @@ class _CategoryFormScreenState extends ConsumerState<CategoryFormScreen> {
   Future<void> _save() async {
     final name = _nameController.text.trim();
     if (name.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('El nombre es obligatorio')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('El nombre es obligatorio')),
+      );
       return;
     }
 
-    // Assign color deterministically based on icon
-    int iconIndex = _icons.indexWhere((i) => i.codePoint.toString() == _selectedIcon);
-    if (iconIndex == -1) iconIndex = 0;
-    final determinedColor = _iconColors[iconIndex];
-
     final dao = ref.read(categoriesDaoProvider);
+
+    // Validar unicidad del nombre (case-insensitive)
+    final existing = await dao.findByName(name, excludeId: widget.category?.id);
+    if (existing != null) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Ya existe una categoría llamada "$name"')),
+      );
+      return;
+    }
+
+    // Resolver color: si el usuario no eligió, asignar uno único automáticamente
+    String color;
+    if (_selectedColor != null) {
+      color = _selectedColor!;
+    } else if (widget.category == null) {
+      final used = await dao.getUsedColors();
+      color = pickUnusedCategoryColor(used);
+    } else {
+      color = widget.category!.color;
+    }
+
     if (widget.category == null) {
       await dao.createCategory(CategoriesCompanion.insert(
         id: const Uuid().v4(),
         name: name,
-        color: drift.Value(determinedColor),
+        color: drift.Value(color),
         icon: drift.Value(_selectedIcon),
       ));
     } else {
       await dao.updateCategory(widget.category!.copyWith(
         name: name,
-        color: determinedColor,
+        color: color,
         icon: _selectedIcon,
       ));
     }
@@ -97,40 +110,56 @@ class _CategoryFormScreenState extends ConsumerState<CategoryFormScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              TextField(enableSuggestions: false, autocorrect: false, 
+              TextField(enableSuggestions: false, autocorrect: false,
                 controller: _nameController,
-                decoration: const InputDecoration(labelText: 'Nombre'),
+                decoration: const InputDecoration(
+                  labelText: 'Nombre',
+                  helperText: 'El nombre debe ser único',
+                ),
               ),
               const SizedBox(height: 24),
-              const Text('Icono (El color se asignará automáticamente):', style: TextStyle(fontSize: 14, color: Colors.grey, fontWeight: FontWeight.w500)),
+              const Text('Icono:', style: TextStyle(fontSize: 14, color: Colors.grey, fontWeight: FontWeight.w500)),
               const SizedBox(height: 12),
               Wrap(
                 spacing: 12,
                 runSpacing: 12,
-                children: _icons.asMap().entries.map((entry) {
-                  final i = entry.value;
-                  final index = entry.key;
+                children: _icons.map((i) {
                   final iCode = i.codePoint.toString();
                   final isSelected = _selectedIcon == iCode;
-                  final iconColor = Color(int.parse(_iconColors[index].replaceAll('#', '0xFF')));
-                  
+                  // Color de previsualización del icono: usa el color actual
+                  // seleccionado o el primero de la paleta
+                  final previewColor = _selectedColor != null
+                      ? Color(int.parse(_selectedColor!.replaceAll('#', '0xFF')))
+                      : const Color(0xFF6C63FF);
                   return GestureDetector(
                     onTap: () => setState(() => _selectedIcon = iCode),
                     child: AnimatedContainer(
                       duration: const Duration(milliseconds: 200),
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: isSelected ? iconColor.withValues(alpha: 0.2) : Colors.transparent,
+                        color: isSelected
+                            ? previewColor.withValues(alpha: 0.2)
+                            : Colors.transparent,
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
-                          color: isSelected ? iconColor : Colors.grey.withValues(alpha: 0.3),
+                          color: isSelected ? previewColor : Colors.grey.withValues(alpha: 0.3),
                           width: 2,
                         ),
                       ),
-                      child: Icon(i, color: isSelected ? iconColor : Colors.black87),
+                      child: Icon(i, color: isSelected ? previewColor : Colors.black87),
                     ),
                   );
                 }).toList(),
+              ),
+              const SizedBox(height: 24),
+              const Text(
+                'Color (se asigna automáticamente para evitar duplicados):',
+                style: TextStyle(fontSize: 14, color: Colors.grey, fontWeight: FontWeight.w500),
+              ),
+              const SizedBox(height: 12),
+              _ColorPalettePicker(
+                selected: _selectedColor,
+                onChanged: (c) => setState(() => _selectedColor = c),
               ),
               const SizedBox(height: 48),
               SizedBox(
@@ -149,6 +178,85 @@ class _CategoryFormScreenState extends ConsumerState<CategoryFormScreen> {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _ColorPalettePicker extends ConsumerWidget {
+  const _ColorPalettePicker({required this.selected, required this.onChanged});
+
+  final String? selected;
+  final ValueChanged<String?> onChanged;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return FutureBuilder<Set<String>>(
+      future: ref.watch(categoriesDaoProvider).getUsedColors(),
+      builder: (context, snapshot) {
+        final used = (snapshot.data ?? <String>{}).map((e) => e.toLowerCase()).toSet();
+
+        Widget swatch(String? hex, {bool isAuto = false}) {
+          final c = hex == null
+              ? const Color(0xFF9E9E9E)
+              : Color(int.parse(hex.replaceAll('#', '0xFF')));
+          final isSelected = (isAuto && selected == null) ||
+              (!isAuto && selected != null && selected!.toLowerCase() == hex!.toLowerCase());
+          final isUsed = hex != null && used.contains(hex.toLowerCase());
+
+          return GestureDetector(
+            onTap: () => onChanged(hex),
+            child: Tooltip(
+              message: isUsed
+                  ? 'Color ya en uso por otra categoría'
+                  : (isAuto ? 'Asignar automáticamente' : ''),
+              child: Stack(
+                children: [
+                  Container(
+                    width: 36,
+                    height: 36,
+                    margin: const EdgeInsets.only(right: 8),
+                    decoration: BoxDecoration(
+                      color: c,
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: isSelected ? Colors.black87 : Colors.transparent,
+                        width: 3,
+                      ),
+                    ),
+                    child: isAuto
+                        ? const Icon(Icons.auto_awesome, color: Colors.white, size: 18)
+                        : null,
+                  ),
+                  if (isUsed)
+                    Positioned(
+                      right: 8,
+                      bottom: 0,
+                      child: Container(
+                        width: 14,
+                        height: 14,
+                        decoration: const BoxDecoration(
+                          color: Colors.white,
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(Icons.warning_amber_rounded,
+                            size: 12, color: Colors.orange),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          );
+        }
+
+        return Wrap(
+          spacing: 4,
+          runSpacing: 4,
+          children: [
+            swatch(null, isAuto: true),
+            ...kCategoryColorPalette.map((c) => swatch(c)),
+          ],
+        );
+      },
     );
   }
 }

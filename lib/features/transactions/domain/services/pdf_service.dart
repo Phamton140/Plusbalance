@@ -11,29 +11,30 @@ class PdfService {
     required List<Category> categories,
     DateTime? startDate,
     DateTime? endDate,
+    String? userName,
   }) async {
     final pdf = pw.Document();
 
     final fontRegular = await PdfGoogleFonts.robotoRegular();
     final fontBold = await PdfGoogleFonts.robotoBold();
 
-    double totalIncomes = 0;
-    double totalExpenses = 0;
+    double totalIngresos = 0;
+    double totalGastos = 0;
 
     for (var tx in transactions) {
-      if (tx.type == 'income') totalIncomes += tx.amount;
-      if (tx.type == 'expense') totalExpenses += tx.amount;
+      if (tx.type == 'income') totalIngresos += tx.amount;
+      if (tx.type == 'expense') totalGastos += tx.amount;
     }
 
-    final balance = totalIncomes - totalExpenses;
+    final balanceNeto = totalIngresos - totalGastos;
 
     final DateFormat dateFormatter = DateFormat('dd/MM/yyyy');
-    final DateFormat dateTimeFormatter = DateFormat('dd/MM/yyyy HH:mm');
+    final DateFormat dateTimeFormatter = DateFormat("dd 'de' MMMM 'de' yyyy 'a las' HH:mm", 'es');
     final String periodText = (startDate != null && endDate != null)
-        ? 'Periodo: ${dateFormatter.format(startDate)} - ${dateFormatter.format(endDate)}'
-        : 'Periodo: Histórico Completo';
+        ? 'Periodo: del ${dateFormatter.format(startDate)} al ${dateFormatter.format(endDate)}'
+        : 'Periodo: Histórico completo';
 
-    String accountName(String id) {
+    String nombreCuenta(String id) {
       final a = accounts.firstWhere(
         (a) => a.id == id,
         orElse: () => Account(
@@ -51,7 +52,7 @@ class PdfService {
       return a.name;
     }
 
-    String categoryName(String? id) {
+    String nombreCategoria(String? id) {
       if (id == null) return 'Sin categoría';
       final c = categories.firstWhere(
         (c) => c.id == id,
@@ -67,7 +68,7 @@ class PdfService {
       return c.name;
     }
 
-    String typeText(String t) => switch (t) {
+    String tipoTexto(String t) => switch (t) {
           'income' => 'Ingreso',
           'expense' => 'Gasto',
           'transfer' => 'Transferencia',
@@ -77,18 +78,19 @@ class PdfService {
     final sortedTx = [...transactions]
       ..sort((a, b) => b.date.compareTo(a.date));
 
-    final List<List<dynamic>> tableData = sortedTx.map((tx) {
+    final List<List<dynamic>> datosTabla = sortedTx.map((tx) {
       return [
         dateFormatter.format(tx.date),
-        typeText(tx.type),
-        accountName(tx.accountId),
-        categoryName(tx.categoryId),
+        tipoTexto(tx.type),
+        nombreCuenta(tx.accountId),
+        nombreCategoria(tx.categoryId),
         tx.description ?? '-',
         '\$${tx.amount.toStringAsFixed(2)}',
       ];
     }).toList();
 
-    final activeAccounts = accounts.where((a) => !a.isArchived).toList();
+    final cuentasActivas = accounts.where((a) => !a.isArchived).toList();
+    final patrimonioTotal = cuentasActivas.fold<double>(0, (sum, a) => sum + a.balance);
 
     pdf.addPage(
       pw.MultiPage(
@@ -102,22 +104,53 @@ class PdfService {
           return pw.Column(
             crossAxisAlignment: pw.CrossAxisAlignment.start,
             children: [
+              // Logo de la app dibujado con pw (no usa imágenes)
+              pw.Container(
+                padding: const pw.EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: pw.BoxDecoration(
+                  color: const PdfColor.fromInt(0xFF6C63FF),
+                  borderRadius: const pw.BorderRadius.all(pw.Radius.circular(8)),
+                ),
+                child: pw.Row(
+                  mainAxisSize: pw.MainAxisSize.min,
+                  children: [
+                    pw.Text(
+                      '+',
+                      style: pw.TextStyle(
+                        color: const PdfColor.fromInt(0xFF00D4AA),
+                        fontSize: 20,
+                        fontWeight: pw.FontWeight.bold,
+                      ),
+                    ),
+                    pw.SizedBox(width: 4),
+                    pw.Text(
+                      'Balance',
+                      style: pw.TextStyle(
+                        color: PdfColors.white,
+                        fontSize: 18,
+                        fontWeight: pw.FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              pw.SizedBox(height: 12),
               pw.Row(
                 mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                 children: [
-                  pw.Text('+Balance',
-                      style: pw.TextStyle(
-                          fontSize: 24,
-                          fontWeight: pw.FontWeight.bold,
-                          color: PdfColors.blue800)),
                   pw.Text('Estado de Cuenta',
-                      style: const pw.TextStyle(
-                          fontSize: 16, color: PdfColors.grey700)),
+                      style: pw.TextStyle(
+                          fontSize: 22,
+                          fontWeight: pw.FontWeight.bold,
+                          color: PdfColors.blueGrey800)),
+                  if (userName != null && userName.isNotEmpty)
+                    pw.Text('Usuario: $userName',
+                        style: const pw.TextStyle(
+                            fontSize: 11, color: PdfColors.grey700)),
                 ],
               ),
               pw.SizedBox(height: 4),
-              pw.Text(
-                  'Generado: ${dateTimeFormatter.format(DateTime.now())}',
+              pw.Text('Generado el ${dateTimeFormatter.format(DateTime.now())}',
                   style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey600)),
               pw.Text(periodText,
                   style: const pw.TextStyle(fontSize: 12, color: PdfColors.grey600)),
@@ -129,37 +162,41 @@ class PdfService {
         footer: (context) {
           return pw.Container(
             alignment: pw.Alignment.centerRight,
-            child: pw.Text('Página ${context.pageNumber} de ${context.pagesCount}',
+            child: pw.Text(
+                'Página ${context.pageNumber} de ${context.pagesCount}',
                 style: const pw.TextStyle(fontSize: 9, color: PdfColors.grey500)),
           );
         },
         build: (context) {
           return [
             // Resumen financiero
-            pw.Text('Resumen Financiero',
-                style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold)),
+            _seccionTitulo('Resumen Financiero'),
             pw.SizedBox(height: 8),
             pw.Row(
               mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
               children: [
-                _buildSummaryBox('Ingresos', totalIncomes, PdfColors.green700),
-                _buildSummaryBox('Gastos', totalExpenses, PdfColors.red700),
-                _buildSummaryBox('Balance', balance, PdfColors.blue700),
+                _cajaResumen('Ingresos', totalIngresos,
+                    const PdfColor.fromInt(0xFF00D4AA)),
+                _cajaResumen('Gastos', totalGastos,
+                    const PdfColor.fromInt(0xFFFF6B6B)),
+                _cajaResumen('Balance Neto', balanceNeto,
+                    balanceNeto >= 0
+                        ? const PdfColor.fromInt(0xFF4D96FF)
+                        : const PdfColor.fromInt(0xFFFF6B6B)),
               ],
             ),
             pw.SizedBox(height: 24),
 
-            // Saldo por cuenta (estilo estado de cuenta)
-            pw.Text('Saldo Actual por Cuenta',
-                style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold)),
+            // Saldo por cuenta
+            _seccionTitulo('Saldo Actual por Cuenta'),
             pw.SizedBox(height: 8),
-            if (activeAccounts.isEmpty)
+            if (cuentasActivas.isEmpty)
               pw.Text('No hay cuentas registradas.',
                   style: const pw.TextStyle(color: PdfColors.grey600))
             else
               pw.TableHelper.fromTextArray(
                 headers: const ['Cuenta', 'Tipo', 'Institución', 'Saldo'],
-                data: activeAccounts.map((a) {
+                data: cuentasActivas.map((a) {
                   return [
                     a.name,
                     a.type.toUpperCase(),
@@ -193,30 +230,30 @@ class PdfService {
                   pw.Text('Patrimonio Total',
                       style: pw.TextStyle(
                           fontWeight: pw.FontWeight.bold, fontSize: 12)),
-                  pw.Text(
-                      '\$${activeAccounts.fold<double>(0, (sum, a) => sum + a.balance).toStringAsFixed(2)}',
+                  pw.Text('\$${patrimonioTotal.toStringAsFixed(2)}',
                       style: pw.TextStyle(
                           fontWeight: pw.FontWeight.bold,
                           fontSize: 14,
-                          color: PdfColors.blue800)),
+                          color: const PdfColor.fromInt(0xFF6C63FF))),
                 ],
               ),
             ),
             pw.SizedBox(height: 24),
 
             // Detalle de transacciones
-            pw.Text('Detalle de Transacciones',
-                style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold)),
+            _seccionTitulo('Detalle de Transacciones'),
             pw.SizedBox(height: 8),
-            if (tableData.isEmpty)
+            if (datosTabla.isEmpty)
               pw.Center(
                 child: pw.Text('No hay transacciones en este periodo',
                     style: const pw.TextStyle(fontSize: 14, color: PdfColors.grey600)),
               )
             else
               pw.TableHelper.fromTextArray(
-                headers: const ['Fecha', 'Tipo', 'Cuenta', 'Categoría', 'Descripción', 'Monto'],
-                data: tableData,
+                headers: const [
+                  'Fecha', 'Tipo', 'Cuenta', 'Categoría', 'Descripción', 'Monto'
+                ],
+                data: datosTabla,
                 border: pw.TableBorder.all(color: PdfColors.grey300, width: 0.5),
                 headerStyle: pw.TextStyle(
                     fontWeight: pw.FontWeight.bold, color: PdfColors.white, fontSize: 9),
@@ -247,7 +284,12 @@ class PdfService {
     );
   }
 
-  static pw.Widget _buildSummaryBox(String title, double amount, PdfColor color) {
+  static pw.Widget _seccionTitulo(String texto) {
+    return pw.Text(texto,
+        style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold));
+  }
+
+  static pw.Widget _cajaResumen(String titulo, double monto, PdfColor color) {
     return pw.Container(
       width: 160,
       padding: const pw.EdgeInsets.all(12),
@@ -259,15 +301,17 @@ class PdfService {
       child: pw.Column(
         crossAxisAlignment: pw.CrossAxisAlignment.start,
         children: [
-          pw.Text(title,
+          pw.Text(titulo,
               style: pw.TextStyle(
                   fontSize: 10,
                   color: PdfColors.grey700,
                   fontWeight: pw.FontWeight.bold)),
           pw.SizedBox(height: 4),
-          pw.Text('\$${amount.toStringAsFixed(2)}',
+          pw.Text('\$${monto.toStringAsFixed(2)}',
               style: pw.TextStyle(
-                  fontSize: 16, color: color, fontWeight: pw.FontWeight.bold)),
+                  fontSize: 16,
+                  color: color,
+                  fontWeight: pw.FontWeight.bold)),
         ],
       ),
     );
