@@ -15,8 +15,11 @@ const String goalDefaultCategoryName = 'Ahorro / Metas';
 const String goalDefaultCategoryColor = '#00D4AA';
 
 const String efectivoDefaultAccountId = 'efectivo-default';
+const String efectivoDefaultColor = '#9E9E9E';
+
 const String transferenciaDefaultCategoryId = 'default-cat-transferencia';
 const String transferenciaDefaultCategoryName = 'Transferencia';
+const String transferenciaDefaultColor = '#FB8C00';
 
 class _DefaultCategory {
   final String id;
@@ -28,14 +31,14 @@ class _DefaultCategory {
 
 const List<_DefaultCategory> _defaultCategories = [
   _DefaultCategory('default-cat-hogar', 'Hogar', Icons.home, '#9D4EDD'),
-  _DefaultCategory('default-cat-alimentos', 'Alimentos', Icons.restaurant, '#00D4AA'),
+  _DefaultCategory('default-cat-alimentos', 'Alimentos', Icons.restaurant, '#66BB6A'),
   _DefaultCategory('default-cat-salud', 'Salud', Icons.medical_services, '#4D96FF'),
   _DefaultCategory('default-cat-gym', 'Gym', Icons.fitness_center, '#FF6B9D'),
   _DefaultCategory('default-cat-transporte', 'Transporte', Icons.directions_bus, '#FF6B6B'),
   _DefaultCategory('default-cat-viajes', 'Viajes', Icons.flight, '#00BCD4'),
-  _DefaultCategory('default-cat-compras', 'Compras', Icons.shopping_cart, '#6C63FF'),
+  _DefaultCategory('default-cat-compras', 'Compras', Icons.shopping_cart, '#5E35B1'),
   _DefaultCategory(goalDefaultCategoryId, goalDefaultCategoryName, Icons.savings, goalDefaultCategoryColor),
-  _DefaultCategory(transferenciaDefaultCategoryId, transferenciaDefaultCategoryName, Icons.sync_alt, '#6C63FF'),
+  _DefaultCategory(transferenciaDefaultCategoryId, transferenciaDefaultCategoryName, Icons.sync_alt, transferenciaDefaultColor),
 ];
 
 @DriftDatabase(tables: [
@@ -53,7 +56,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 7;
+  int get schemaVersion => 8;
 
   @override
   MigrationStrategy get migration {
@@ -65,7 +68,7 @@ class AppDatabase extends _$AppDatabase {
           name: 'Efectivo',
           institutionName: const Value('Efectivo'),
           type: 'cash',
-          color: const Value('#9E9E9E'),
+          color: const Value(efectivoDefaultColor),
         ));
         await _ensureDefaultCategories();
       },
@@ -93,13 +96,30 @@ class AppDatabase extends _$AppDatabase {
         }
         if (from < 7) {
           await _ensureDefaultCategories();
-          // La cuenta efectivo por defecto debe tener institutionName
-          // 'Efectivo' para que se muestre igual al nombre.
           await (update(accounts)
                 ..where((a) => a.id.equals(efectivoDefaultAccountId)))
               .write(const AccountsCompanion(
             institutionName: Value('Efectivo'),
           ));
+        }
+        if (from < 8) {
+          await _ensureDefaultCategories();
+          // La cuenta efectivo siempre gris.
+          await (update(accounts)
+                ..where((a) => a.id.equals(efectivoDefaultAccountId)))
+              .write(const AccountsCompanion(color: Value(efectivoDefaultColor)));
+          // Reservar los colores de metas y transferencias para que ninguna
+          // categoría de usuario pueda tomarlos; corregir también los colores
+          // de categorías por defecto que quedaron duplicados.
+          await (update(categories)
+                ..where((c) => c.id.equals('default-cat-alimentos')))
+              .write(const CategoriesCompanion(color: Value('#66BB6A')));
+          await (update(categories)
+                ..where((c) => c.id.equals('default-cat-compras')))
+              .write(const CategoriesCompanion(color: Value('#5E35B1')));
+          await (update(categories)
+                ..where((c) => c.id.equals(transferenciaDefaultCategoryId)))
+              .write(const CategoriesCompanion(color: Value(transferenciaDefaultColor)));
         }
       },
       beforeOpen: (details) async {

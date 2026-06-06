@@ -235,29 +235,27 @@ class _AccountFormScreenState extends ConsumerState<AccountFormScreen> {
                 ),
                 const SizedBox(height: 16),
               ] else ...[
-                TextField(enableSuggestions: false, autocorrect: false,
+                TextField(
                   controller: _bankController,
                   decoration: const InputDecoration(
                       labelText: 'Institución (Ej. Banco BHD)', hintText: 'Banco'),
                 ),
                 const SizedBox(height: 16),
-                TextField(enableSuggestions: false, autocorrect: false,
+                TextField(
                   controller: _nameController,
                   decoration: const InputDecoration(
                       labelText: 'Alias (Ej. Tarjeta Gold)', hintText: 'Alias de cuenta'),
                 ),
                 const SizedBox(height: 16),
               ],
-              TextField(enableSuggestions: false, autocorrect: false,
+              TextField(
                 controller: _balanceController,
                 keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                onTap: () {
-                  if (_balanceController.text.isNotEmpty) {
-                    _balanceController.selection = TextSelection(
-                        baseOffset: 0, extentOffset: _balanceController.text.length);
-                  }
-                },
-                decoration: const InputDecoration(labelText: 'Saldo Inicial / Actual'),
+                decoration: const InputDecoration(
+                  labelText: 'Saldo Inicial / Actual',
+                  hintText: '0.00',
+                  prefixText: '\$ ',
+                ),
               ),
               if (!isLocked) ...[
                 const SizedBox(height: 24),
@@ -435,8 +433,6 @@ class _AccountFormScreenState extends ConsumerState<AccountFormScreen> {
                   ),
                   const SizedBox(height: 8),
                   TextField(
-                    enableSuggestions: false,
-                    autocorrect: false,
                     controller: _rechargeLabelController,
                     decoration: const InputDecoration(
                       labelText: 'Concepto (Ej. Salario)',
@@ -445,8 +441,6 @@ class _AccountFormScreenState extends ConsumerState<AccountFormScreen> {
                   ),
                   const SizedBox(height: 12),
                   TextField(
-                    enableSuggestions: false,
-                    autocorrect: false,
                     controller: _rechargeAmountController,
                     keyboardType:
                         const TextInputType.numberWithOptions(decimal: true),
@@ -458,8 +452,6 @@ class _AccountFormScreenState extends ConsumerState<AccountFormScreen> {
                   ),
                   const SizedBox(height: 12),
                   TextField(
-                    enableSuggestions: false,
-                    autocorrect: false,
                     controller: _rechargeAmountController2,
                     keyboardType:
                         const TextInputType.numberWithOptions(decimal: true),
@@ -504,8 +496,6 @@ class _AccountFormScreenState extends ConsumerState<AccountFormScreen> {
                   ),
                   const SizedBox(height: 8),
                   TextField(
-                    enableSuggestions: false,
-                    autocorrect: false,
                     controller: _rechargeLabelController,
                     decoration: const InputDecoration(
                       labelText: 'Concepto (Ej. Salario)',
@@ -514,8 +504,6 @@ class _AccountFormScreenState extends ConsumerState<AccountFormScreen> {
                   ),
                   const SizedBox(height: 12),
                   TextField(
-                    enableSuggestions: false,
-                    autocorrect: false,
                     controller: _rechargeAmountController,
                     keyboardType:
                         const TextInputType.numberWithOptions(decimal: true),

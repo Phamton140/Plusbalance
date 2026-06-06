@@ -20,7 +20,6 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
   String? _selectedCategoryId;
   final TextEditingController _descController = TextEditingController();
   final TextEditingController _thirdPartyController = TextEditingController();
-  final FocusNode _amountFocusNode = FocusNode();
 
   final _thirdPartyId = 'THIRD_PARTY';
 
@@ -28,14 +27,10 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
   void initState() {
     super.initState();
     _loadDefaultAccount();
-    _amountFocusNode.addListener(() {
-      if (mounted) setState(() {});
-    });
   }
 
   @override
   void dispose() {
-    _amountFocusNode.dispose();
     _amountController.dispose();
     _thirdPartyController.dispose();
     _descController.dispose();
@@ -203,20 +198,38 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  TextField(enableSuggestions: false, autocorrect: false, 
+                  TextFormField(
                     controller: _amountController,
-                    focusNode: _amountFocusNode,
                     keyboardType: const TextInputType.numberWithOptions(decimal: true),
                     textAlign: TextAlign.center,
-                    onTap: () {
-                      if (_amountController.text.isNotEmpty) {
-                        _amountController.selection = TextSelection(baseOffset: 0, extentOffset: _amountController.text.length);
-                      }
-                    },
-                    style: TextStyle(fontSize: 56, fontWeight: FontWeight.w900, letterSpacing: -2, color: colorScheme.onSurface),
+                    style: TextStyle(
+                      fontSize: 36,
+                      fontWeight: FontWeight.w800,
+                      color: colorScheme.onSurface,
+                    ),
                     decoration: InputDecoration(
-                      hintText: _amountFocusNode.hasFocus ? "" : "0.00",
-                      border: InputBorder.none,
+                      labelText: 'Monto',
+                      hintText: '0.00',
+                      prefixText: '\$ ',
+                      prefixStyle: TextStyle(
+                        fontSize: 28,
+                        fontWeight: FontWeight.w700,
+                        color: colorScheme.onSurfaceVariant,
+                      ),
+                      filled: true,
+                      fillColor: colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: BorderSide(color: colorScheme.outline),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: BorderSide(color: colorScheme.outlineVariant),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: BorderSide(color: colorScheme.primary, width: 2),
+                      ),
                     ),
                   ),
                   const SizedBox(height: 24),
@@ -257,7 +270,7 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
                         
                         if (isThirdPartyInvolved) ...[
                           const SizedBox(height: 24),
-                          TextField(enableSuggestions: false, autocorrect: false, 
+                          TextField(
                             controller: _thirdPartyController,
                             decoration: const InputDecoration(
                               labelText: 'Descripción / Motivo del Tercero',
@@ -271,7 +284,7 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
                     _buildAccountSelector(accounts, _selectedAccountId, (val) => setState(() => _selectedAccountId = val), 'Cuenta', requireBalance: _type == 'expense'),
                   
                   const SizedBox(height: 24),
-                  TextField(enableSuggestions: false, autocorrect: false,
+                  TextField(
                     controller: _descController,
                     decoration: const InputDecoration(labelText: 'Descripción (Opcional)'),
                   ),

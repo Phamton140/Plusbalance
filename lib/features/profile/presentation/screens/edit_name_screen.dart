@@ -51,7 +51,7 @@ class _EditNameScreenState extends ConsumerState<EditNameScreen> {
             children: [
               const Text('¿Cómo te gustaría que te llamemos?', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
               const SizedBox(height: 24),
-              TextField(enableSuggestions: false, autocorrect: false, 
+              TextField(
                 controller: _nameController,
                 decoration: const InputDecoration(
                   labelText: 'Tu Nombre',

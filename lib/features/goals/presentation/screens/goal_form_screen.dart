@@ -78,20 +78,19 @@ class _GoalFormScreenState extends ConsumerState<GoalFormScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              TextField(enableSuggestions: false, autocorrect: false, 
+              TextField(
                 controller: _nameController,
                 decoration: const InputDecoration(labelText: 'Nombre', hintText: 'Ej. Auto Nuevo'),
               ),
               const SizedBox(height: 16),
-              TextField(enableSuggestions: false, autocorrect: false, 
+              TextField(
                 controller: _amountController,
                 keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                onTap: () {
-                  if (_amountController.text.isNotEmpty) {
-                    _amountController.selection = TextSelection(baseOffset: 0, extentOffset: _amountController.text.length);
-                  }
-                },
-                decoration: const InputDecoration(labelText: 'Monto Objetivo'),
+                decoration: const InputDecoration(
+                  labelText: 'Monto Objetivo',
+                  hintText: '0.00',
+                  prefixText: '\$ ',
+                ),
               ),
               const SizedBox(height: 24),
               ListTile(

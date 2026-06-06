@@ -73,6 +73,14 @@ class _CategoryFormScreenState extends ConsumerState<CategoryFormScreen> {
     // Resolver color: si el usuario no eligió, asignar uno único automáticamente
     String color;
     if (_selectedColor != null) {
+      // Defensa adicional: no se debe poder asignar un color reservado.
+      if (kReservedCategoryColors.contains(_selectedColor!.toLowerCase())) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Ese color está reservado para categorías del sistema')),
+        );
+        return;
+      }
       color = _selectedColor!;
     } else if (widget.category == null) {
       final used = await dao.getUsedColors();
@@ -110,7 +118,7 @@ class _CategoryFormScreenState extends ConsumerState<CategoryFormScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              TextField(enableSuggestions: false, autocorrect: false,
+              TextField(
                 controller: _nameController,
                 decoration: const InputDecoration(
                   labelText: 'Nombre',
@@ -202,13 +210,17 @@ class _ColorPalettePicker extends ConsumerWidget {
           final isSelected = (isAuto && selected == null) ||
               (!isAuto && selected != null && selected!.toLowerCase() == hex!.toLowerCase());
           final isUsed = hex != null && used.contains(hex.toLowerCase());
+          final isReserved = hex != null &&
+              kReservedCategoryColors.contains(hex.toLowerCase());
 
           return GestureDetector(
-            onTap: () => onChanged(hex),
+            onTap: isReserved ? null : () => onChanged(hex),
             child: Tooltip(
-              message: isUsed
-                  ? 'Color ya en uso por otra categoría'
-                  : (isAuto ? 'Asignar automáticamente' : ''),
+              message: isReserved
+                  ? 'Reservado para categorías del sistema'
+                  : (isUsed
+                      ? 'Color ya en uso por otra categoría'
+                      : (isAuto ? 'Asignar automáticamente' : '')),
               child: Stack(
                 children: [
                   Container(
@@ -216,7 +228,9 @@ class _ColorPalettePicker extends ConsumerWidget {
                     height: 36,
                     margin: const EdgeInsets.only(right: 8),
                     decoration: BoxDecoration(
-                      color: c,
+                      color: isReserved
+                          ? c.withValues(alpha: 0.35)
+                          : c,
                       shape: BoxShape.circle,
                       border: Border.all(
                         color: isSelected ? Colors.black87 : Colors.transparent,
@@ -225,7 +239,9 @@ class _ColorPalettePicker extends ConsumerWidget {
                     ),
                     child: isAuto
                         ? const Icon(Icons.auto_awesome, color: Colors.white, size: 18)
-                        : null,
+                        : (isReserved
+                            ? const Icon(Icons.lock, color: Colors.white70, size: 18)
+                            : null),
                   ),
                   if (isUsed)
                     Positioned(
@@ -254,6 +270,9 @@ class _ColorPalettePicker extends ConsumerWidget {
           children: [
             swatch(null, isAuto: true),
             ...kCategoryColorPalette.map((c) => swatch(c)),
+            ...kReservedCategoryColors
+                .where((c) => !kCategoryColorPalette.contains(c))
+                .map((c) => swatch(c)),
           ],
         );
       },
