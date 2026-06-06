@@ -4,6 +4,7 @@ import 'package:uuid/uuid.dart';
 import 'package:drift/drift.dart' as drift;
 import '../../../core/database/app_database.dart';
 import '../../../core/providers/database_provider.dart';
+import '../domain/service_scheduler.dart';
 import 'screens/service_form_screen.dart';
 
 class ServicesScreen extends ConsumerWidget {
@@ -159,7 +160,7 @@ class ServicesScreen extends ConsumerWidget {
 
 }
 
-  Future<void> _payLateService(BuildContext context, WidgetRef ref, Service service) async {
+Future<void> _payLateService(BuildContext context, WidgetRef ref, Service service) async {
     final surchargeController = TextEditingController();
     await showDialog(
       context: context,
@@ -220,25 +221,20 @@ class ServicesScreen extends ConsumerWidget {
                   isIncome,
                 );
 
-                // Calcular próxima fecha
+                // Calcular próxima fecha y restablecer estado a active.
+                // 'once' retorna null: en ese caso no se reprograma, solo se mantiene
+                // la fecha original al desactivar el servicio.
                 final now = DateTime.now();
-                DateTime nextDate = service.nextDate;
-                if (service.frequency == 'monthly') {
-                  nextDate = DateTime(now.year, now.month + 1, service.nextDate.day);
-                } else if (service.frequency.startsWith('weekly')) {
-                  nextDate = now.add(const Duration(days: 7)); // Simplificado para el pago manual
-                } else if (service.frequency == 'yearly') {
-                  nextDate = DateTime(now.year + 1, now.month, service.nextDate.day);
+                final nextDate = ServiceScheduler.nextDateForService(service: service, now: now);
+                if (nextDate != null) {
+                  await servicesDao.updateService(
+                    ServicesCompanion(
+                      id: drift.Value(service.id),
+                      nextDate: drift.Value(nextDate),
+                      status: const drift.Value('active'),
+                    ),
+                  );
                 }
-
-                // Restablecer estado a active
-                await servicesDao.updateService(
-                  ServicesCompanion(
-                    id: drift.Value(service.id),
-                    nextDate: drift.Value(nextDate),
-                    status: const drift.Value('active'),
-                  ),
-                );
 
                 if (context.mounted) Navigator.pop(context);
               },

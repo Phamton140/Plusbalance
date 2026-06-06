@@ -3,6 +3,7 @@ import 'package:uuid/uuid.dart';
 import 'package:drift/drift.dart' as drift;
 import '../providers/database_provider.dart';
 import '../database/app_database.dart';
+import '../../features/services/domain/service_scheduler.dart';
 
 final automationEngineProvider = FutureProvider<void>((ref) async {
   final servicesDao = ref.read(servicesDaoProvider);
@@ -63,37 +64,9 @@ final automationEngineProvider = FutureProvider<void>((ref) async {
       );
 
       // 3. Reprogramar la próxima fecha
-      DateTime nextDate = service.nextDate;
-      if (service.frequency == 'monthly') {
-        nextDate = DateTime(now.year, now.month + 1, service.nextDate.day);
-      } else if (service.frequency.startsWith('weekly')) {
-        if (service.frequency == 'weekly') {
-          nextDate = now.add(const Duration(days: 7));
-        } else {
-          // Parse weekly:1,3,5
-          try {
-            final daysStr = service.frequency.split(':')[1];
-            final days = daysStr.split(',').map(int.parse).toList();
-            days.sort();
-            final currentDay = now.weekday;
-            int daysToAdd = 7;
-            for (int d in days) {
-              if (d > currentDay) {
-                daysToAdd = d - currentDay;
-                break;
-              }
-            }
-            if (daysToAdd == 7 && days.isNotEmpty) {
-              daysToAdd = (7 - currentDay) + days.first;
-            }
-            nextDate = now.add(Duration(days: daysToAdd));
-          } catch (e) {
-            nextDate = now.add(const Duration(days: 7));
-          }
-        }
-      } else if (service.frequency == 'yearly') {
-        nextDate = DateTime(now.year + 1, now.month, service.nextDate.day);
-      } else if (service.frequency == 'once') {
+      final nextDate = ServiceScheduler.nextDateForService(service: service, now: now);
+      if (nextDate == null) {
+        // Frecuencia 'once' o no soportada: desactivar el servicio.
         await servicesDao.updateService(
           service.copyWith(
             isActive: false,

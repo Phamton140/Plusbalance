@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../dashboard/presentation/dashboard_screen.dart';
+import '../../services/providers/services_providers.dart';
+import '../../../core/database/app_database.dart';
 
 class NotificationsScreen extends ConsumerWidget {
   const NotificationsScreen({super.key});
@@ -29,7 +30,7 @@ class NotificationsScreen extends ConsumerWidget {
                     children: [
                       const Padding(
                         padding: EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-                        child: Text('Pagos Atrasados', style: TextStyle(fontWeight: 'bold', color: Colors.red)),
+                        child: Text('Pagos Atrasados', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.red)),
                       ),
                       ...services.map((s) {
                         return Container(
@@ -82,7 +83,7 @@ class NotificationsScreen extends ConsumerWidget {
                     children: [
                       const Padding(
                         padding: EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-                        child: Text('Próximos Pagos (7 días)', style: TextStyle(fontWeight: 'bold', color: Colors.orange)),
+                        child: Text('Próximos Pagos (7 días)', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.orange)),
                       ),
                       ...upcomingServices.map((s) {
                         final now = DateTime.now();
@@ -141,9 +142,9 @@ class NotificationsScreen extends ConsumerWidget {
               // NO NOTIFICATIONS
               Consumer(
                 builder: (context, ref, child) {
-                  final lateList = ref.watch(lateServicesProvider).valueOrNull ?? [];
-                  final upcomingList = (ref.watch(upcomingServicesProvider).valueOrNull ?? []).where((s) => s.status != 'late').toList();
-                  
+                  final lateList = ref.watch(lateServicesProvider).value ?? <Service>[];
+                  final upcomingList = (ref.watch(upcomingServicesProvider).value ?? <Service>[]).where((s) => s.status != 'late').toList();
+
                   if (lateList.isEmpty && upcomingList.isEmpty) {
                     return Container(
                       alignment: Alignment.center,

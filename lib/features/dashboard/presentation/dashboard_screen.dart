@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../transactions/presentation/screens/transaction_form_screen.dart';
+import '../../services/providers/services_providers.dart';
 import '../../../core/providers/database_provider.dart';
 import '../../../core/automation/automation_engine.dart';
 import '../../../core/database/app_database.dart';
@@ -57,8 +58,8 @@ class DashboardScreen extends ConsumerWidget {
                     children: [
                       Consumer(
                         builder: (context, ref, child) {
-                          final lateList = ref.watch(lateServicesProvider).valueOrNull ?? [];
-                          final upcomingList = (ref.watch(upcomingServicesProvider).valueOrNull ?? []).where((s) => s.status != 'late').toList();
+                          final lateList = ref.watch(lateServicesProvider).value ?? <Service>[];
+                          final upcomingList = (ref.watch(upcomingServicesProvider).value ?? <Service>[]).where((s) => s.status != 'late').toList();
                           final count = lateList.length + upcomingList.length;
 
                           return Stack(
@@ -316,14 +317,6 @@ final _usernameProvider = FutureProvider<String>((ref) async {
   final dao = ref.watch(settingsDaoProvider);
   final name = await dao.getSetting('profile_username');
   return name ?? 'Usuario +Balance';
-});
-
-final upcomingServicesProvider = StreamProvider<List<Service>>((ref) {
-  return ref.watch(servicesDaoProvider).watchUpcomingServices();
-});
-
-final lateServicesProvider = StreamProvider<List<Service>>((ref) {
-  return ref.watch(servicesDaoProvider).watchLateServices();
 });
 
 class _ModuleGrid extends StatelessWidget {
