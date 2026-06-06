@@ -59,10 +59,12 @@ class TransactionsListScreen extends ConsumerWidget {
                 ).get();
               }
               final accounts = await db.select(db.accounts).get();
+              final categories = await db.select(db.categories).get();
 
               await PdfService.generateAndPrintTransactionsReport(
                 transactions: txs,
                 accounts: accounts,
+                categories: categories,
                 startDate: pickedRange?.start,
                 endDate: pickedRange?.end,
               );
