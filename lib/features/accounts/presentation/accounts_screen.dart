@@ -4,6 +4,7 @@ import 'package:uuid/uuid.dart';
 import 'package:drift/drift.dart' as drift;
 import '../../../core/providers/database_provider.dart';
 import '../../../core/database/app_database.dart';
+import '../domain/account_constants.dart';
 import 'screens/account_form_screen.dart';
 
 class AccountsScreen extends ConsumerWidget {
@@ -137,7 +138,31 @@ class _AccountCard extends ConsumerWidget {
                         style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w900, fontStyle: FontStyle.italic),
                       ),
                     ],
-                  )
+                  ),
+                  if (_hasRecharge(account)) ...[
+                    const SizedBox(height: 12),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.autorenew, color: Colors.white, size: 14),
+                          const SizedBox(width: 6),
+                          Flexible(
+                            child: Text(
+                              _rechargeFooterText(account),
+                              style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w500),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -145,6 +170,31 @@ class _AccountCard extends ConsumerWidget {
         );
       }
     );
+  }
+
+  bool _hasRecharge(Account a) {
+    final f = a.rechargeFrequency;
+    return f != null && f.isNotEmpty && f != 'none';
+  }
+
+  String _rechargeFooterText(Account a) {
+    final freq = a.rechargeFrequency;
+    final label = kRechargeFrequencyLabels[freq] ?? freq ?? '';
+    final concept = a.rechargeLabel?.isNotEmpty == true ? ' · ${a.rechargeLabel}' : '';
+    final next = a.rechargeNextDate;
+    if (next == null) return 'Recarga $label$concept';
+    final today = DateTime.now();
+    final days = next.difference(DateTime(today.year, today.month, today.day)).inDays;
+    String when;
+    if (days < 0) when = 'vencida (${-days}d)';
+    else if (days == 0) when = 'hoy';
+    else if (days == 1) when = 'mañana';
+    else if (days <= 7) when = 'en ${days}d';
+    else when = '${next.day}/${next.month}';
+    if (a.rechargeAmount != null) {
+      return 'Recarga $label$concept · \$${a.rechargeAmount!.toStringAsFixed(0)} $when';
+    }
+    return 'Recarga $label$concept · $when';
   }
 
   void _showOptions(BuildContext context, WidgetRef ref, Account account, bool isDefault) {

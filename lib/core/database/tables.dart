@@ -20,6 +20,19 @@ class Accounts extends Table with AuditMixin {
   RealColumn get interestRate => real().nullable()();
   BoolColumn get isArchived => boolean().withDefault(const Constant(false))();
 
+  // --- Recurrencia de recarga (opcional) ---
+  // Frecuencia con la que se acredita dinero a la cuenta
+  // (ej. salario, mesada, renta). null o 'none' = sin recurrencia.
+  // Valores: 'none', 'weekly', 'biweekly', 'monthly'.
+  TextColumn get rechargeFrequency => text().nullable()();
+  // Próxima fecha esperada de la recarga. Si se omite se calcula
+  // automáticamente a partir de la frecuencia.
+  DateTimeColumn get rechargeNextDate => dateTime().nullable()();
+  // Monto esperado (opcional, sólo informativo).
+  RealColumn get rechargeAmount => real().nullable()();
+  // Etiqueta o concepto (opcional, ej. "Salario", "Mesada").
+  TextColumn get rechargeLabel => text().nullable()();
+
   @override
   Set<Column> get primaryKey => {id};
 }

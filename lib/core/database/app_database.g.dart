@@ -556,6 +556,52 @@ class $AccountsTable extends Accounts with TableInfo<$AccountsTable, Account> {
     ),
     defaultValue: const Constant(false),
   );
+  static const VerificationMeta _rechargeFrequencyMeta = const VerificationMeta(
+    'rechargeFrequency',
+  );
+  @override
+  late final GeneratedColumn<String> rechargeFrequency =
+      GeneratedColumn<String>(
+        'recharge_frequency',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _rechargeNextDateMeta = const VerificationMeta(
+    'rechargeNextDate',
+  );
+  @override
+  late final GeneratedColumn<DateTime> rechargeNextDate =
+      GeneratedColumn<DateTime>(
+        'recharge_next_date',
+        aliasedName,
+        true,
+        type: DriftSqlType.dateTime,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _rechargeAmountMeta = const VerificationMeta(
+    'rechargeAmount',
+  );
+  @override
+  late final GeneratedColumn<double> rechargeAmount = GeneratedColumn<double>(
+    'recharge_amount',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _rechargeLabelMeta = const VerificationMeta(
+    'rechargeLabel',
+  );
+  @override
+  late final GeneratedColumn<String> rechargeLabel = GeneratedColumn<String>(
+    'recharge_label',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     createdAt,
@@ -572,6 +618,10 @@ class $AccountsTable extends Accounts with TableInfo<$AccountsTable, Account> {
     paymentDay,
     interestRate,
     isArchived,
+    rechargeFrequency,
+    rechargeNextDate,
+    rechargeAmount,
+    rechargeLabel,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -681,6 +731,42 @@ class $AccountsTable extends Accounts with TableInfo<$AccountsTable, Account> {
         isArchived.isAcceptableOrUnknown(data['is_archived']!, _isArchivedMeta),
       );
     }
+    if (data.containsKey('recharge_frequency')) {
+      context.handle(
+        _rechargeFrequencyMeta,
+        rechargeFrequency.isAcceptableOrUnknown(
+          data['recharge_frequency']!,
+          _rechargeFrequencyMeta,
+        ),
+      );
+    }
+    if (data.containsKey('recharge_next_date')) {
+      context.handle(
+        _rechargeNextDateMeta,
+        rechargeNextDate.isAcceptableOrUnknown(
+          data['recharge_next_date']!,
+          _rechargeNextDateMeta,
+        ),
+      );
+    }
+    if (data.containsKey('recharge_amount')) {
+      context.handle(
+        _rechargeAmountMeta,
+        rechargeAmount.isAcceptableOrUnknown(
+          data['recharge_amount']!,
+          _rechargeAmountMeta,
+        ),
+      );
+    }
+    if (data.containsKey('recharge_label')) {
+      context.handle(
+        _rechargeLabelMeta,
+        rechargeLabel.isAcceptableOrUnknown(
+          data['recharge_label']!,
+          _rechargeLabelMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -746,6 +832,22 @@ class $AccountsTable extends Accounts with TableInfo<$AccountsTable, Account> {
         DriftSqlType.bool,
         data['${effectivePrefix}is_archived'],
       )!,
+      rechargeFrequency: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}recharge_frequency'],
+      ),
+      rechargeNextDate: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}recharge_next_date'],
+      ),
+      rechargeAmount: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}recharge_amount'],
+      ),
+      rechargeLabel: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}recharge_label'],
+      ),
     );
   }
 
@@ -770,6 +872,10 @@ class Account extends DataClass implements Insertable<Account> {
   final int? paymentDay;
   final double? interestRate;
   final bool isArchived;
+  final String? rechargeFrequency;
+  final DateTime? rechargeNextDate;
+  final double? rechargeAmount;
+  final String? rechargeLabel;
   const Account({
     required this.createdAt,
     required this.updatedAt,
@@ -785,6 +891,10 @@ class Account extends DataClass implements Insertable<Account> {
     this.paymentDay,
     this.interestRate,
     required this.isArchived,
+    this.rechargeFrequency,
+    this.rechargeNextDate,
+    this.rechargeAmount,
+    this.rechargeLabel,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -813,6 +923,18 @@ class Account extends DataClass implements Insertable<Account> {
       map['interest_rate'] = Variable<double>(interestRate);
     }
     map['is_archived'] = Variable<bool>(isArchived);
+    if (!nullToAbsent || rechargeFrequency != null) {
+      map['recharge_frequency'] = Variable<String>(rechargeFrequency);
+    }
+    if (!nullToAbsent || rechargeNextDate != null) {
+      map['recharge_next_date'] = Variable<DateTime>(rechargeNextDate);
+    }
+    if (!nullToAbsent || rechargeAmount != null) {
+      map['recharge_amount'] = Variable<double>(rechargeAmount);
+    }
+    if (!nullToAbsent || rechargeLabel != null) {
+      map['recharge_label'] = Variable<String>(rechargeLabel);
+    }
     return map;
   }
 
@@ -842,6 +964,18 @@ class Account extends DataClass implements Insertable<Account> {
           ? const Value.absent()
           : Value(interestRate),
       isArchived: Value(isArchived),
+      rechargeFrequency: rechargeFrequency == null && nullToAbsent
+          ? const Value.absent()
+          : Value(rechargeFrequency),
+      rechargeNextDate: rechargeNextDate == null && nullToAbsent
+          ? const Value.absent()
+          : Value(rechargeNextDate),
+      rechargeAmount: rechargeAmount == null && nullToAbsent
+          ? const Value.absent()
+          : Value(rechargeAmount),
+      rechargeLabel: rechargeLabel == null && nullToAbsent
+          ? const Value.absent()
+          : Value(rechargeLabel),
     );
   }
 
@@ -865,6 +999,14 @@ class Account extends DataClass implements Insertable<Account> {
       paymentDay: serializer.fromJson<int?>(json['paymentDay']),
       interestRate: serializer.fromJson<double?>(json['interestRate']),
       isArchived: serializer.fromJson<bool>(json['isArchived']),
+      rechargeFrequency: serializer.fromJson<String?>(
+        json['rechargeFrequency'],
+      ),
+      rechargeNextDate: serializer.fromJson<DateTime?>(
+        json['rechargeNextDate'],
+      ),
+      rechargeAmount: serializer.fromJson<double?>(json['rechargeAmount']),
+      rechargeLabel: serializer.fromJson<String?>(json['rechargeLabel']),
     );
   }
   @override
@@ -885,6 +1027,10 @@ class Account extends DataClass implements Insertable<Account> {
       'paymentDay': serializer.toJson<int?>(paymentDay),
       'interestRate': serializer.toJson<double?>(interestRate),
       'isArchived': serializer.toJson<bool>(isArchived),
+      'rechargeFrequency': serializer.toJson<String?>(rechargeFrequency),
+      'rechargeNextDate': serializer.toJson<DateTime?>(rechargeNextDate),
+      'rechargeAmount': serializer.toJson<double?>(rechargeAmount),
+      'rechargeLabel': serializer.toJson<String?>(rechargeLabel),
     };
   }
 
@@ -903,6 +1049,10 @@ class Account extends DataClass implements Insertable<Account> {
     Value<int?> paymentDay = const Value.absent(),
     Value<double?> interestRate = const Value.absent(),
     bool? isArchived,
+    Value<String?> rechargeFrequency = const Value.absent(),
+    Value<DateTime?> rechargeNextDate = const Value.absent(),
+    Value<double?> rechargeAmount = const Value.absent(),
+    Value<String?> rechargeLabel = const Value.absent(),
   }) => Account(
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
@@ -920,6 +1070,18 @@ class Account extends DataClass implements Insertable<Account> {
     paymentDay: paymentDay.present ? paymentDay.value : this.paymentDay,
     interestRate: interestRate.present ? interestRate.value : this.interestRate,
     isArchived: isArchived ?? this.isArchived,
+    rechargeFrequency: rechargeFrequency.present
+        ? rechargeFrequency.value
+        : this.rechargeFrequency,
+    rechargeNextDate: rechargeNextDate.present
+        ? rechargeNextDate.value
+        : this.rechargeNextDate,
+    rechargeAmount: rechargeAmount.present
+        ? rechargeAmount.value
+        : this.rechargeAmount,
+    rechargeLabel: rechargeLabel.present
+        ? rechargeLabel.value
+        : this.rechargeLabel,
   );
   Account copyWithCompanion(AccountsCompanion data) {
     return Account(
@@ -947,6 +1109,18 @@ class Account extends DataClass implements Insertable<Account> {
       isArchived: data.isArchived.present
           ? data.isArchived.value
           : this.isArchived,
+      rechargeFrequency: data.rechargeFrequency.present
+          ? data.rechargeFrequency.value
+          : this.rechargeFrequency,
+      rechargeNextDate: data.rechargeNextDate.present
+          ? data.rechargeNextDate.value
+          : this.rechargeNextDate,
+      rechargeAmount: data.rechargeAmount.present
+          ? data.rechargeAmount.value
+          : this.rechargeAmount,
+      rechargeLabel: data.rechargeLabel.present
+          ? data.rechargeLabel.value
+          : this.rechargeLabel,
     );
   }
 
@@ -966,7 +1140,11 @@ class Account extends DataClass implements Insertable<Account> {
           ..write('cutDay: $cutDay, ')
           ..write('paymentDay: $paymentDay, ')
           ..write('interestRate: $interestRate, ')
-          ..write('isArchived: $isArchived')
+          ..write('isArchived: $isArchived, ')
+          ..write('rechargeFrequency: $rechargeFrequency, ')
+          ..write('rechargeNextDate: $rechargeNextDate, ')
+          ..write('rechargeAmount: $rechargeAmount, ')
+          ..write('rechargeLabel: $rechargeLabel')
           ..write(')'))
         .toString();
   }
@@ -987,6 +1165,10 @@ class Account extends DataClass implements Insertable<Account> {
     paymentDay,
     interestRate,
     isArchived,
+    rechargeFrequency,
+    rechargeNextDate,
+    rechargeAmount,
+    rechargeLabel,
   );
   @override
   bool operator ==(Object other) =>
@@ -1005,7 +1187,11 @@ class Account extends DataClass implements Insertable<Account> {
           other.cutDay == this.cutDay &&
           other.paymentDay == this.paymentDay &&
           other.interestRate == this.interestRate &&
-          other.isArchived == this.isArchived);
+          other.isArchived == this.isArchived &&
+          other.rechargeFrequency == this.rechargeFrequency &&
+          other.rechargeNextDate == this.rechargeNextDate &&
+          other.rechargeAmount == this.rechargeAmount &&
+          other.rechargeLabel == this.rechargeLabel);
 }
 
 class AccountsCompanion extends UpdateCompanion<Account> {
@@ -1023,6 +1209,10 @@ class AccountsCompanion extends UpdateCompanion<Account> {
   final Value<int?> paymentDay;
   final Value<double?> interestRate;
   final Value<bool> isArchived;
+  final Value<String?> rechargeFrequency;
+  final Value<DateTime?> rechargeNextDate;
+  final Value<double?> rechargeAmount;
+  final Value<String?> rechargeLabel;
   final Value<int> rowid;
   const AccountsCompanion({
     this.createdAt = const Value.absent(),
@@ -1039,6 +1229,10 @@ class AccountsCompanion extends UpdateCompanion<Account> {
     this.paymentDay = const Value.absent(),
     this.interestRate = const Value.absent(),
     this.isArchived = const Value.absent(),
+    this.rechargeFrequency = const Value.absent(),
+    this.rechargeNextDate = const Value.absent(),
+    this.rechargeAmount = const Value.absent(),
+    this.rechargeLabel = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   AccountsCompanion.insert({
@@ -1056,6 +1250,10 @@ class AccountsCompanion extends UpdateCompanion<Account> {
     this.paymentDay = const Value.absent(),
     this.interestRate = const Value.absent(),
     this.isArchived = const Value.absent(),
+    this.rechargeFrequency = const Value.absent(),
+    this.rechargeNextDate = const Value.absent(),
+    this.rechargeAmount = const Value.absent(),
+    this.rechargeLabel = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        name = Value(name),
@@ -1075,6 +1273,10 @@ class AccountsCompanion extends UpdateCompanion<Account> {
     Expression<int>? paymentDay,
     Expression<double>? interestRate,
     Expression<bool>? isArchived,
+    Expression<String>? rechargeFrequency,
+    Expression<DateTime>? rechargeNextDate,
+    Expression<double>? rechargeAmount,
+    Expression<String>? rechargeLabel,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -1092,6 +1294,10 @@ class AccountsCompanion extends UpdateCompanion<Account> {
       if (paymentDay != null) 'payment_day': paymentDay,
       if (interestRate != null) 'interest_rate': interestRate,
       if (isArchived != null) 'is_archived': isArchived,
+      if (rechargeFrequency != null) 'recharge_frequency': rechargeFrequency,
+      if (rechargeNextDate != null) 'recharge_next_date': rechargeNextDate,
+      if (rechargeAmount != null) 'recharge_amount': rechargeAmount,
+      if (rechargeLabel != null) 'recharge_label': rechargeLabel,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -1111,6 +1317,10 @@ class AccountsCompanion extends UpdateCompanion<Account> {
     Value<int?>? paymentDay,
     Value<double?>? interestRate,
     Value<bool>? isArchived,
+    Value<String?>? rechargeFrequency,
+    Value<DateTime?>? rechargeNextDate,
+    Value<double?>? rechargeAmount,
+    Value<String?>? rechargeLabel,
     Value<int>? rowid,
   }) {
     return AccountsCompanion(
@@ -1128,6 +1338,10 @@ class AccountsCompanion extends UpdateCompanion<Account> {
       paymentDay: paymentDay ?? this.paymentDay,
       interestRate: interestRate ?? this.interestRate,
       isArchived: isArchived ?? this.isArchived,
+      rechargeFrequency: rechargeFrequency ?? this.rechargeFrequency,
+      rechargeNextDate: rechargeNextDate ?? this.rechargeNextDate,
+      rechargeAmount: rechargeAmount ?? this.rechargeAmount,
+      rechargeLabel: rechargeLabel ?? this.rechargeLabel,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -1177,6 +1391,18 @@ class AccountsCompanion extends UpdateCompanion<Account> {
     if (isArchived.present) {
       map['is_archived'] = Variable<bool>(isArchived.value);
     }
+    if (rechargeFrequency.present) {
+      map['recharge_frequency'] = Variable<String>(rechargeFrequency.value);
+    }
+    if (rechargeNextDate.present) {
+      map['recharge_next_date'] = Variable<DateTime>(rechargeNextDate.value);
+    }
+    if (rechargeAmount.present) {
+      map['recharge_amount'] = Variable<double>(rechargeAmount.value);
+    }
+    if (rechargeLabel.present) {
+      map['recharge_label'] = Variable<String>(rechargeLabel.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -1200,6 +1426,10 @@ class AccountsCompanion extends UpdateCompanion<Account> {
           ..write('paymentDay: $paymentDay, ')
           ..write('interestRate: $interestRate, ')
           ..write('isArchived: $isArchived, ')
+          ..write('rechargeFrequency: $rechargeFrequency, ')
+          ..write('rechargeNextDate: $rechargeNextDate, ')
+          ..write('rechargeAmount: $rechargeAmount, ')
+          ..write('rechargeLabel: $rechargeLabel, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -5547,6 +5777,10 @@ typedef $$AccountsTableCreateCompanionBuilder =
       Value<int?> paymentDay,
       Value<double?> interestRate,
       Value<bool> isArchived,
+      Value<String?> rechargeFrequency,
+      Value<DateTime?> rechargeNextDate,
+      Value<double?> rechargeAmount,
+      Value<String?> rechargeLabel,
       Value<int> rowid,
     });
 typedef $$AccountsTableUpdateCompanionBuilder =
@@ -5565,6 +5799,10 @@ typedef $$AccountsTableUpdateCompanionBuilder =
       Value<int?> paymentDay,
       Value<double?> interestRate,
       Value<bool> isArchived,
+      Value<String?> rechargeFrequency,
+      Value<DateTime?> rechargeNextDate,
+      Value<double?> rechargeAmount,
+      Value<String?> rechargeLabel,
       Value<int> rowid,
     });
 
@@ -5686,6 +5924,26 @@ class $$AccountsTableFilterComposer
 
   ColumnFilters<bool> get isArchived => $composableBuilder(
     column: $table.isArchived,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get rechargeFrequency => $composableBuilder(
+    column: $table.rechargeFrequency,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get rechargeNextDate => $composableBuilder(
+    column: $table.rechargeNextDate,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get rechargeAmount => $composableBuilder(
+    column: $table.rechargeAmount,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get rechargeLabel => $composableBuilder(
+    column: $table.rechargeLabel,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -5818,6 +6076,26 @@ class $$AccountsTableOrderingComposer
     column: $table.isArchived,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<String> get rechargeFrequency => $composableBuilder(
+    column: $table.rechargeFrequency,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get rechargeNextDate => $composableBuilder(
+    column: $table.rechargeNextDate,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get rechargeAmount => $composableBuilder(
+    column: $table.rechargeAmount,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get rechargeLabel => $composableBuilder(
+    column: $table.rechargeLabel,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$AccountsTableAnnotationComposer
@@ -5878,6 +6156,26 @@ class $$AccountsTableAnnotationComposer
 
   GeneratedColumn<bool> get isArchived => $composableBuilder(
     column: $table.isArchived,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get rechargeFrequency => $composableBuilder(
+    column: $table.rechargeFrequency,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get rechargeNextDate => $composableBuilder(
+    column: $table.rechargeNextDate,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get rechargeAmount => $composableBuilder(
+    column: $table.rechargeAmount,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get rechargeLabel => $composableBuilder(
+    column: $table.rechargeLabel,
     builder: (column) => column,
   );
 
@@ -5974,6 +6272,10 @@ class $$AccountsTableTableManager
                 Value<int?> paymentDay = const Value.absent(),
                 Value<double?> interestRate = const Value.absent(),
                 Value<bool> isArchived = const Value.absent(),
+                Value<String?> rechargeFrequency = const Value.absent(),
+                Value<DateTime?> rechargeNextDate = const Value.absent(),
+                Value<double?> rechargeAmount = const Value.absent(),
+                Value<String?> rechargeLabel = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => AccountsCompanion(
                 createdAt: createdAt,
@@ -5990,6 +6292,10 @@ class $$AccountsTableTableManager
                 paymentDay: paymentDay,
                 interestRate: interestRate,
                 isArchived: isArchived,
+                rechargeFrequency: rechargeFrequency,
+                rechargeNextDate: rechargeNextDate,
+                rechargeAmount: rechargeAmount,
+                rechargeLabel: rechargeLabel,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -6008,6 +6314,10 @@ class $$AccountsTableTableManager
                 Value<int?> paymentDay = const Value.absent(),
                 Value<double?> interestRate = const Value.absent(),
                 Value<bool> isArchived = const Value.absent(),
+                Value<String?> rechargeFrequency = const Value.absent(),
+                Value<DateTime?> rechargeNextDate = const Value.absent(),
+                Value<double?> rechargeAmount = const Value.absent(),
+                Value<String?> rechargeLabel = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => AccountsCompanion.insert(
                 createdAt: createdAt,
@@ -6024,6 +6334,10 @@ class $$AccountsTableTableManager
                 paymentDay: paymentDay,
                 interestRate: interestRate,
                 isArchived: isArchived,
+                rechargeFrequency: rechargeFrequency,
+                rechargeNextDate: rechargeNextDate,
+                rechargeAmount: rechargeAmount,
+                rechargeLabel: rechargeLabel,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0

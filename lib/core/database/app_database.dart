@@ -48,7 +48,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 4;
+  int get schemaVersion => 5;
 
   @override
   MigrationStrategy get migration {
@@ -74,6 +74,12 @@ class AppDatabase extends _$AppDatabase {
         }
         if (from < 4) {
           await _ensureDefaultCategories();
+        }
+        if (from < 5) {
+          await m.addColumn(accounts, accounts.rechargeFrequency);
+          await m.addColumn(accounts, accounts.rechargeNextDate);
+          await m.addColumn(accounts, accounts.rechargeAmount);
+          await m.addColumn(accounts, accounts.rechargeLabel);
         }
       },
       beforeOpen: (details) async {

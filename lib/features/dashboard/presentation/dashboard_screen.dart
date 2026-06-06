@@ -8,6 +8,7 @@ import '../../services/providers/services_providers.dart';
 import '../../../core/providers/database_provider.dart';
 import '../../../core/automation/automation_engine.dart';
 import '../../../core/database/app_database.dart';
+import '../../notifications/providers/recharge_providers.dart';
 
 class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
@@ -60,7 +61,8 @@ class DashboardScreen extends ConsumerWidget {
                         builder: (context, ref, child) {
                           final lateList = ref.watch(lateServicesProvider).value ?? <Service>[];
                           final upcomingList = (ref.watch(upcomingServicesProvider).value ?? <Service>[]).where((s) => s.status != 'late').toList();
-                          final count = lateList.length + upcomingList.length;
+                          final rechargeList = ref.watch(upcomingAccountRechargesProvider).value ?? [];
+                          final count = lateList.length + upcomingList.length + rechargeList.length;
 
                           return Stack(
                             children: [

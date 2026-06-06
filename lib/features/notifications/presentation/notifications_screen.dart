@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../services/providers/services_providers.dart';
+import '../../accounts/domain/account_constants.dart';
+import '../providers/recharge_providers.dart';
 import '../../../core/database/app_database.dart';
 
 class NotificationsScreen extends ConsumerWidget {
@@ -10,6 +12,7 @@ class NotificationsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final lateAsync = ref.watch(lateServicesProvider);
     final upcomingAsync = ref.watch(upcomingServicesProvider);
+    final rechargesAsync = ref.watch(upcomingAccountRechargesProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -139,13 +142,101 @@ class NotificationsScreen extends ConsumerWidget {
                 error: (e, s) => const SizedBox(),
               ),
 
+              // UPCOMING ACCOUNT RECHARGES
+              rechargesAsync.when(
+                data: (recharges) {
+                  if (recharges.isEmpty) return const SizedBox();
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const SizedBox(height: 16),
+                      const Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                        child: Text('Recargas próximas (7 días)',
+                            style: TextStyle(
+                                fontWeight: FontWeight.bold, color: Colors.teal)),
+                      ),
+                      ...recharges.map((r) {
+                        final String daysText;
+                        final Color color;
+                        if (r.daysFromNow < 0) {
+                          daysText = 'vencida hace ${-r.daysFromNow}d';
+                          color = Colors.red;
+                        } else if (r.daysFromNow == 0) {
+                          daysText = '¡Hoy!';
+                          color = Colors.teal;
+                        } else if (r.daysFromNow == 1) {
+                          daysText = 'mañana';
+                          color = Colors.teal;
+                        } else {
+                          daysText = 'en ${r.daysFromNow} días';
+                          color = Colors.teal;
+                        }
+
+                        final freq = kRechargeFrequencyLabels[
+                                r.account.rechargeFrequency] ??
+                            r.account.rechargeFrequency;
+                        final concept = r.account.rechargeLabel?.isNotEmpty == true
+                            ? ' · ${r.account.rechargeLabel}'
+                            : '';
+                        final amount = r.account.rechargeAmount != null
+                            ? ' ~ \$${r.account.rechargeAmount!.toStringAsFixed(0)}'
+                            : '';
+
+                        return Container(
+                          margin: const EdgeInsets.only(
+                              bottom: 8, left: 24, right: 24),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 16),
+                          decoration: BoxDecoration(
+                            color: color.withValues(alpha: 0.1),
+                            border:
+                                Border.all(color: color.withValues(alpha: 0.5)),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(Icons.autorenew, color: color, size: 28),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Recarga a ${r.account.name}',
+                                      style: TextStyle(
+                                          color: color,
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 16),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      '$freq$concept$amount · $daysText',
+                                      style: TextStyle(
+                                          color: color, fontSize: 13),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      }),
+                    ],
+                  );
+                },
+                loading: () => const SizedBox(),
+                error: (e, s) => const SizedBox(),
+              ),
+
               // NO NOTIFICATIONS
               Consumer(
                 builder: (context, ref, child) {
                   final lateList = ref.watch(lateServicesProvider).value ?? <Service>[];
                   final upcomingList = (ref.watch(upcomingServicesProvider).value ?? <Service>[]).where((s) => s.status != 'late').toList();
+                  final rechargeList = ref.watch(upcomingAccountRechargesProvider).value ?? [];
 
-                  if (lateList.isEmpty && upcomingList.isEmpty) {
+                  if (lateList.isEmpty && upcomingList.isEmpty && rechargeList.isEmpty) {
                     return Container(
                       alignment: Alignment.center,
                       padding: const EdgeInsets.only(top: 100),
