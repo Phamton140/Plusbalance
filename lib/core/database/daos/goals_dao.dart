@@ -152,6 +152,7 @@ class GoalsDao extends DatabaseAccessor<AppDatabase> with _$GoalsDaoMixin {
       if (tx == null) {
         throw StateError('Este abono ya no existe.');
       }
+
       final account = await (select(accounts)
             ..where((a) => a.id.equals(tx.accountId)))
           .getSingle();
@@ -159,6 +160,19 @@ class GoalsDao extends DatabaseAccessor<AppDatabase> with _$GoalsDaoMixin {
       await (update(accounts)..where((a) => a.id.equals(account.id))).write(
         AccountsCompanion(balance: Value(account.balance + tx.amount)),
       );
+
+      if (tx.description?.startsWith('Meta completada:') == true) {
+        final goalName = tx.description!.replaceFirst('Meta completada: ', '');
+        final goal = await (select(goals)..where((g) => g.name.equals(goalName))).getSingleOrNull();
+        if (goal != null) {
+          await update(goals).replace(
+            goal.copyWith(
+              status: 'active',
+              updatedAt: DateTime.now(),
+            ),
+          );
+        }
+      }
 
       await (delete(transactions)..where((t) => t.id.equals(tx.id))).go();
     });
