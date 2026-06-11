@@ -307,88 +307,88 @@ class _AlcanciaCard extends StatelessWidget {
             gradient: LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
-              colors: [Colors.amber.shade700, Colors.amber.shade500],
+              colors: [Color(0xFFE91E63), Color(0xFFF48FB1)],
             ),
             boxShadow: [
               BoxShadow(
-                color: Colors.amber.withValues(alpha: 0.4),
+                color: Color(0xFFE91E63).withValues(alpha: 0.4),
                 blurRadius: 10,
                 offset: const Offset(0, 4),
               )
             ]
           ),
-          child: Stack(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Positioned(
-                right: -20,
-                bottom: -20,
-                child: Icon(Icons.savings, size: 120, color: Colors.white.withValues(alpha: 0.15)),
-              ),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
+                  Text(
+                    account.institutionName ?? 'Alcancía',
+                    style: const TextStyle(color: Colors.white70, fontSize: 16, fontWeight: FontWeight.w500),
+                  ),
                   Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      if (isDefault) const Icon(Icons.star, color: Colors.amber, size: 20),
+                      const SizedBox(width: 8),
+                      const Icon(Icons.savings, color: Colors.white70, size: 28),
+                    ],
+                  )
+                ],
+              ),
+              const SizedBox(height: 16),
+              const Icon(Icons.memory, color: Colors.white54, size: 36),
+              const SizedBox(height: 8),
+              Text(
+                '**** **** **** ${account.id.substring(account.id.length - 4).toUpperCase()}',
+                style: const TextStyle(color: Colors.white, fontSize: 18, fontFamily: 'monospace', letterSpacing: 2),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        account.institutionName ?? 'Alcancía',
-                        style: const TextStyle(color: Colors.white70, fontSize: 16, fontWeight: FontWeight.w500),
+                        account.name.toUpperCase(),
+                        style: const TextStyle(color: Colors.white70, fontSize: 12, letterSpacing: 1),
                       ),
-                      if (isDefault) const Icon(Icons.star, color: Colors.amber, size: 20),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            account.name.toUpperCase(),
-                            style: const TextStyle(color: Colors.white70, fontSize: 12, letterSpacing: 1),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            '\$${account.balance.toStringAsFixed(2)}',
-                            style: const TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.bold),
-                          ),
-                        ],
-                      ),
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.2),
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(Icons.savings, color: Colors.white, size: 32),
+                      const SizedBox(height: 4),
+                      Text(
+                        '\$${account.balance.toStringAsFixed(2)}',
+                        style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 12),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: const Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.info_outline, color: Colors.white, size: 14),
-                        SizedBox(width: 6),
-                        Flexible(
-                          child: Text(
-                            'Dinero reservado para metas',
-                            style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w500),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      ],
-                    ),
+                  const Text(
+                    'ALCAN',
+                    style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w900, fontStyle: FontStyle.italic),
                   ),
                 ],
+              ),
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.info_outline, color: Colors.white, size: 14),
+                    SizedBox(width: 6),
+                    Flexible(
+                      child: Text(
+                        'Dinero reservado para metas',
+                        style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w500),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ],
           ),

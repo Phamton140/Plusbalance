@@ -18,7 +18,7 @@ const String efectivoDefaultAccountId = 'efectivo-default';
 const String efectivoDefaultColor = '#9E9E9E';
 
 const String alcanciaDefaultAccountId = 'alcancia-default';
-const String alcanciaDefaultColor = '#FFD700';
+const String alcanciaDefaultColor = '#E91E63';
 
 const String transferenciaDefaultCategoryId = 'default-cat-transferencia';
 const String transferenciaDefaultCategoryName = 'Transferencia';
