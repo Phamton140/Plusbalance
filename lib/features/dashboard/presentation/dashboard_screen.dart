@@ -62,7 +62,8 @@ class DashboardScreen extends ConsumerWidget {
                           final lateList = ref.watch(lateServicesProvider).value ?? <Service>[];
                           final upcomingList = (ref.watch(upcomingServicesProvider).value ?? <Service>[]).where((s) => s.status != 'late').toList();
                           final rechargeList = ref.watch(upcomingAccountRechargesProvider).value ?? [];
-                          final count = lateList.length + upcomingList.length + rechargeList.length;
+                          final completableGoals = ref.watch(completableGoalsProvider).value ?? [];
+                          final count = lateList.length + upcomingList.length + rechargeList.length + completableGoals.length;
 
                           return Stack(
                             children: [
@@ -319,6 +320,10 @@ final _usernameProvider = FutureProvider<String>((ref) async {
   final dao = ref.watch(settingsDaoProvider);
   final name = await dao.getSetting('profile_username');
   return name ?? 'Usuario +Balance';
+});
+
+final completableGoalsProvider = StreamProvider<List<Goal>>((ref) {
+  return ref.watch(goalsDaoProvider).watchCompletableGoals();
 });
 
 class _ModuleGrid extends StatelessWidget {
