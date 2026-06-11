@@ -58,12 +58,8 @@ class DashboardScreen extends ConsumerWidget {
                   Row(
                     children: [
                       Consumer(
-                        builder: (context, ref, child) {
-                          final lateList = ref.watch(lateServicesProvider).value ?? <Service>[];
-                          final upcomingList = (ref.watch(upcomingServicesProvider).value ?? <Service>[]).where((s) => s.status != 'late').toList();
-                          final rechargeList = ref.watch(upcomingAccountRechargesProvider).value ?? [];
-                          final completableGoals = ref.watch(completableGoalsProvider).value ?? [];
-                          final count = lateList.length + upcomingList.length + rechargeList.length + completableGoals.length;
+                        builder: (context, ref, _) {
+                          final count = ref.watch(notificationCountProvider);
 
                           return Stack(
                             children: [
@@ -203,21 +199,35 @@ class _ExpensePieChart extends StatefulWidget {
 
 class _ExpensePieChartState extends State<_ExpensePieChart> {
   int touchedIndex = -1;
+  late Map<String, Category> _categoryById;
+
+  @override
+  void initState() {
+    super.initState();
+    _categoryById = {for (var c in widget.categories) c.id: c};
+  }
+
+  @override
+  void didUpdateWidget(covariant _ExpensePieChart oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.categories != widget.categories) {
+      _categoryById = {for (var c in widget.categories) c.id: c};
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    // Agrupar por categoría
-    Map<String, double> sums = {};
+    final sums = <String, double>{};
     double total = 0;
-    
-    for (var tx in widget.transactions) {
+
+    for (final tx in widget.transactions) {
       final catId = tx.categoryId ?? 'other';
       sums[catId] = (sums[catId] ?? 0) + tx.amount;
       total += tx.amount;
     }
 
     final entries = sums.entries.toList()..sort((a, b) => b.value.compareTo(a.value));
-    
+
     if (total == 0) return const SizedBox();
 
     return Row(
@@ -249,7 +259,7 @@ class _ExpensePieChartState extends State<_ExpensePieChart> {
 
                 Color color = Colors.grey;
                 if (e.key != 'other') {
-                  final cat = widget.categories.where((c) => c.id == e.key).firstOrNull;
+                  final cat = _categoryById[e.key];
                   if (cat != null) {
                     color = Color(int.parse(cat.color.replaceAll('#', '0xFF')));
                   }
@@ -275,7 +285,7 @@ class _ExpensePieChartState extends State<_ExpensePieChart> {
               String name = 'Otros';
               Color color = Colors.grey;
               if (e.key != 'other') {
-                final cat = widget.categories.where((c) => c.id == e.key).firstOrNull;
+                final cat = _categoryById[e.key];
                 if (cat != null) {
                   name = cat.name;
                   color = Color(int.parse(cat.color.replaceAll('#', '0xFF')));
@@ -324,6 +334,14 @@ final _usernameProvider = FutureProvider<String>((ref) async {
 
 final completableGoalsProvider = StreamProvider<List<Goal>>((ref) {
   return ref.watch(goalsDaoProvider).watchCompletableGoals();
+});
+
+final notificationCountProvider = Provider<int>((ref) {
+  final lateList = ref.watch(lateServicesProvider).value ?? <Service>[];
+  final upcomingList = (ref.watch(upcomingServicesProvider).value ?? <Service>[]).where((s) => s.status != 'late').toList();
+  final rechargeList = ref.watch(upcomingAccountRechargesProvider).value ?? [];
+  final completableGoals = ref.watch(completableGoalsProvider).value ?? [];
+  return lateList.length + upcomingList.length + rechargeList.length + completableGoals.length;
 });
 
 class _ModuleGrid extends StatelessWidget {

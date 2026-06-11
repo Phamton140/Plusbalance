@@ -12,6 +12,7 @@ class AccountsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final accountsAsync = ref.watch(activeAccountsProvider);
+    final defaultIdAsync = ref.watch(defaultAccountIdProvider);
 
     return Scaffold(
       appBar: AppBar(title: const Text('Cuentas y Tarjetas')),
@@ -20,12 +21,13 @@ class AccountsScreen extends ConsumerWidget {
           if (accounts.isEmpty) {
             return const Center(child: Text('Aún no tienes cuentas registradas', style: TextStyle(color: Colors.grey)));
           }
+          final defaultId = defaultIdAsync.valueOrNull;
           return ListView.builder(
             padding: const EdgeInsets.all(16),
             itemCount: accounts.length,
             itemBuilder: (context, index) {
               final account = accounts[index];
-              return _AccountCard(account: account);
+              return _AccountCard(account: account, isDefault: defaultId == account.id);
             },
           );
         },
@@ -48,26 +50,20 @@ class AccountsScreen extends ConsumerWidget {
 
 class _AccountCard extends ConsumerWidget {
   final Account account;
+  final bool isDefault;
 
-  const _AccountCard({required this.account});
+  const _AccountCard({required this.account, required this.isDefault});
 
   bool get isAlcancia => account.id == alcanciaDefaultAccountId;
   bool get isEfectivo => account.id == efectivoDefaultAccountId;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return StreamBuilder<String?>(
-      stream: ref.watch(settingsDaoProvider).watchSetting('default_account_id'),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) return const SizedBox();
-        final defaultId = snapshot.data;
-        final isDefault = defaultId == account.id;
+    if (isAlcancia) {
+      return _AlcanciaCard(account: account, isDefault: isDefault);
+    }
 
-        if (isAlcancia) {
-          return _AlcanciaCard(account: account, isDefault: isDefault);
-        }
-
-        return Card(
+    return Card(
           margin: const EdgeInsets.only(bottom: 16),
           elevation: 4,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -427,3 +423,7 @@ class _AlcanciaCard extends StatelessWidget {
     );
   }
 }
+
+final defaultAccountIdProvider = StreamProvider<String?>((ref) {
+  return ref.watch(settingsDaoProvider).watchSetting('default_account_id');
+});
