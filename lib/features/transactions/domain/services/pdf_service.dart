@@ -160,7 +160,7 @@ class PdfService {
                     ),
                   pw.SizedBox(width: 8),
                   pw.Text(
-                    '+Balance',
+                    'Balance',
                     style: pw.TextStyle(
                       color: const PdfColor.fromInt(0xFF6C63FF),
                       fontSize: 20,
@@ -315,7 +315,7 @@ class PdfService {
 
     await Printing.layoutPdf(
       onLayout: (PdfPageFormat format) async => pdf.save(),
-      name: 'EstadoDeCuenta_PlusBalance_${DateTime.now().millisecondsSinceEpoch}.pdf',
+      name: 'EstadoDeCuenta_Balance_${DateTime.now().millisecondsSinceEpoch}.pdf',
     );
   }
 

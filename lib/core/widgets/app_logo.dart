@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 
 class AppLogo extends StatelessWidget {
-  const AppLogo({super.key, this.size = 48, this.showText = true});
+  const AppLogo({super.key, this.size = 64, this.showText = true});
 
   final double size;
   final bool showText;
@@ -29,11 +29,11 @@ class AppLogo extends StatelessWidget {
           ),
         ),
         if (showText) ...[
-          SizedBox(width: size * 0.2),
+          SizedBox(width: size * 0.15),
           Text(
-            '+Balance',
+            'Balance',
             style: TextStyle(
-              fontSize: size * 0.5,
+              fontSize: size * 0.45,
               fontWeight: FontWeight.w800,
               color: AppTheme.primary,
               letterSpacing: -0.5,
