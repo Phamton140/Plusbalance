@@ -287,6 +287,7 @@ class _ServiceFormScreenState extends ConsumerState<ServiceFormScreen> {
                     firstDate: tomorrow,
                     lastDate: DateTime.now().add(const Duration(days: 365 * 5)),
                     helpText: 'Selecciona una fecha futura',
+                    locale: const Locale('es'),
                   );
                   if (date != null) {
                     setState(() => _selectedDate = date);
@@ -311,6 +312,7 @@ class _ServiceFormScreenState extends ConsumerState<ServiceFormScreen> {
                       firstDate: minDate,
                       lastDate: DateTime.now().add(const Duration(days: 365 * 10)),
                       helpText: 'Selecciona fecha de finalización',
+                      locale: const Locale('es'),
                     );
                     if (date != null) {
                       setState(() => _selectedEndDate = date);

@@ -405,6 +405,7 @@ class _AccountFormScreenState extends ConsumerState<AccountFormScreen> {
                         lastDate: DateTime.now()
                             .add(const Duration(days: 365 * 5)),
                         helpText: 'Selecciona una fecha futura',
+                        locale: const Locale('es'),
                       );
                       if (picked != null) {
                         setState(() {
@@ -445,6 +446,7 @@ class _AccountFormScreenState extends ConsumerState<AccountFormScreen> {
                         lastDate: DateTime.now()
                             .add(const Duration(days: 365 * 5)),
                         helpText: 'Selecciona una fecha futura',
+                        locale: const Locale('es'),
                       );
                       if (picked != null) {
                         setState(() => _rechargeNextDate2 = picked);
@@ -508,6 +510,7 @@ class _AccountFormScreenState extends ConsumerState<AccountFormScreen> {
                         lastDate:
                             DateTime.now().add(const Duration(days: 365 * 5)),
                         helpText: 'Selecciona una fecha futura',
+                        locale: const Locale('es'),
                       );
                       if (picked != null) {
                         setState(() => _rechargeNextDate = picked);

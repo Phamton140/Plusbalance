@@ -107,6 +107,7 @@ class _GoalFormScreenState extends ConsumerState<GoalFormScreen> {
                     initialDate: _selectedDate ?? DateTime.now(),
                     firstDate: DateTime.now(),
                     lastDate: DateTime.now().add(const Duration(days: 365 * 10)),
+                    locale: const Locale('es'),
                   );
                   if (date != null) {
                     setState(() => _selectedDate = date);

@@ -41,8 +41,9 @@ class GoalsDao extends DatabaseAccessor<AppDatabase> with _$GoalsDaoMixin {
   }
 
   Stream<List<Goal>> watchCompletableGoals() {
-    return watchActiveGoals().map((goals) {
-      return goals.where((g) => g.targetAmount <= g.currentAmount).toList();
+    return watchActiveGoals().asyncMap((goals) async {
+      final balance = await getAlcanciaBalance();
+      return goals.where((g) => g.targetAmount <= balance).toList();
     });
   }
 
@@ -123,7 +124,7 @@ class GoalsDao extends DatabaseAccessor<AppDatabase> with _$GoalsDaoMixin {
           type: 'expense',
           accountId: alcanciaDefaultAccountId,
           categoryId: const Value(goalDefaultCategoryId),
-          description: Value('Meta completada: ${goal.name}'),
+          description: Value(goal.name),
           sourceType: const Value('goal'),
         ),
       );
@@ -161,9 +162,13 @@ class GoalsDao extends DatabaseAccessor<AppDatabase> with _$GoalsDaoMixin {
         AccountsCompanion(balance: Value(account.balance + tx.amount)),
       );
 
-      if (tx.description?.startsWith('Meta completada:') == true) {
-        final goalName = tx.description!.replaceFirst('Meta completada: ', '');
-        final goal = await (select(goals)..where((g) => g.name.equals(goalName))).getSingleOrNull();
+      final goalName = tx.description ?? '';
+      final isGoalCompletion = tx.sourceType == 'goal' || goalName.startsWith('Meta completada:');
+      if (isGoalCompletion) {
+        final actualGoalName = goalName.startsWith('Meta completada:')
+            ? goalName.replaceFirst('Meta completada: ', '')
+            : goalName;
+        final goal = await (select(goals)..where((g) => g.name.equals(actualGoalName))).getSingleOrNull();
         if (goal != null) {
           await update(goals).replace(
             goal.copyWith(

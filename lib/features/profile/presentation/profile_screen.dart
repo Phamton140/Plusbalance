@@ -186,7 +186,11 @@ const Divider(height: 1),
                     );
 
                     if (confirm == true && context.mounted) {
-                      context.go('/pin');
+                      Navigator.pushAndRemoveUntil(
+                        context,
+                        MaterialPageRoute(builder: (_) => const PinScreen()),
+                        (route) => false,
+                      );
                     }
                   },
                 ),

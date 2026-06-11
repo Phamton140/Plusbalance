@@ -99,12 +99,22 @@ class TransactionsListScreen extends ConsumerWidget {
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
             child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                _FilterChip(title: 'Todos', value: 'all', groupValue: filter),
+                SizedBox(
+                  width: 100,
+                  child: _FilterChip(title: 'Todos', value: 'all', groupValue: filter),
+                ),
                 const SizedBox(width: 8),
-                _FilterChip(title: 'Ingresos', value: 'income', groupValue: filter),
+                SizedBox(
+                  width: 100,
+                  child: _FilterChip(title: 'Ingresos', value: 'income', groupValue: filter),
+                ),
                 const SizedBox(width: 8),
-                _FilterChip(title: 'Gastos', value: 'expense', groupValue: filter),
+                SizedBox(
+                  width: 100,
+                  child: _FilterChip(title: 'Gastos', value: 'expense', groupValue: filter),
+                ),
               ],
             ),
           ),
