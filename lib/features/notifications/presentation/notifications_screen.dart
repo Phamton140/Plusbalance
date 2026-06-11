@@ -446,125 +446,119 @@ class NotificationsScreen extends ConsumerWidget {
               ),
 
               // COMPLETABLE GOALS
-              Consumer(
-                builder: (context, ref, _) {
-                  final completableGoals = ref.watch(goalsDaoProvider).watchCompletableGoals();
+              StreamBuilder<List<Goal>>(
+                stream: ref.watch(goalsDaoProvider).watchCompletableGoals(),
+                builder: (context, snapshot) {
+                  final goals = snapshot.data ?? [];
+                  if (goals.isEmpty) return const SizedBox();
 
-                  return completableGoals.when(
-                    data: (goals) {
-                      if (goals.isEmpty) return const SizedBox();
-
-                      return Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Padding(
-                            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                            child: Text(
-                              'METAS COMPLETABLES',
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.grey,
-                              ),
-                            ),
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        child: Text(
+                          'METAS COMPLETABLES',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.grey,
                           ),
-                          ...goals.map((goal) {
-                            return Card(
-                              margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                              child: Padding(
-                                padding: const EdgeInsets.all(16),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
+                        ),
+                      ),
+                      ...goals.map((goal) {
+                        return Card(
+                          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                          child: Padding(
+                            padding: const EdgeInsets.all(16),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
                                   children: [
-                                    Row(
-                                      children: [
-                                        Container(
-                                          padding: const EdgeInsets.all(8),
-                                          decoration: BoxDecoration(
-                                            color: Colors.green.withValues(alpha: 0.1),
-                                            borderRadius: BorderRadius.circular(8),
-                                          ),
-                                          child: const Icon(Icons.flag, color: Colors.green),
-                                        ),
-                                        const SizedBox(width: 12),
-                                        Expanded(
-                                          child: Column(
-                                            crossAxisAlignment: CrossAxisAlignment.start,
-                                            children: [
-                                              Text(
-                                                goal.name,
-                                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                                              ),
-                                              Text(
-                                                'Meta de \$${goal.targetAmount.toStringAsFixed(2)} completable',
-                                                style: const TextStyle(color: Colors.green, fontSize: 13),
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                      ],
+                                    Container(
+                                      padding: const EdgeInsets.all(8),
+                                      decoration: BoxDecoration(
+                                        color: Colors.green.withValues(alpha: 0.1),
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: const Icon(Icons.flag, color: Colors.green),
                                     ),
-                                    const SizedBox(height: 12),
-                                    Align(
-                                      alignment: Alignment.centerRight,
-                                      child: FilledButton.icon(
-                                        style: FilledButton.styleFrom(
-                                          backgroundColor: Colors.green,
-                                          foregroundColor: Colors.white,
-                                        ),
-                                        icon: const Icon(Icons.check_circle, size: 18),
-                                        label: const Text('Completar Meta'),
-                                        onPressed: () async {
-                                          final confirm = await showDialog<bool>(
-                                            context: context,
-                                            builder: (ctx) => AlertDialog(
-                                              title: Text('Completar "${goal.name}"?'),
-                                              content: Text(
-                                                'Se debitara \$${goal.targetAmount.toStringAsFixed(2)} de la Alcancía y se registrara como un gasto.'
-                                              ),
-                                              actions: [
-                                                TextButton(
-                                                  onPressed: () => Navigator.pop(ctx, false),
-                                                  child: const Text('Cancelar'),
-                                                ),
-                                                FilledButton(
-                                                  onPressed: () => Navigator.pop(ctx, true),
-                                                  child: const Text('Completar'),
-                                                ),
-                                              ],
-                                            ),
-                                          );
-
-                                          if (confirm != true) return;
-
-                                          try {
-                                            await ref.read(goalsDaoProvider).completeGoal(goalId: goal.id);
-                                            if (context.mounted) {
-                                              ScaffoldMessenger.of(context).showSnackBar(
-                                                SnackBar(content: Text('¡Meta "${goal.name}" completada!')),
-                                              );
-                                            }
-                                          } catch (e) {
-                                            if (context.mounted) {
-                                              ScaffoldMessenger.of(context).showSnackBar(
-                                                SnackBar(content: Text(e is StateError ? e.message : 'Error al completar meta')),
-                                              );
-                                            }
-                                          }
-                                        },
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            goal.name,
+                                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                                          ),
+                                          Text(
+                                            'Meta de \$${goal.targetAmount.toStringAsFixed(2)} completable',
+                                            style: const TextStyle(color: Colors.green, fontSize: 13),
+                                          ),
+                                        ],
                                       ),
                                     ),
                                   ],
                                 ),
-                              ),
-                            );
-                          }),
-                          const SizedBox(height: 16),
-                        ],
-                      );
-                    },
-                    loading: () => const SizedBox(),
-                    error: (e, s) => const SizedBox(),
+                                const SizedBox(height: 12),
+                                Align(
+                                  alignment: Alignment.centerRight,
+                                  child: FilledButton.icon(
+                                    style: FilledButton.styleFrom(
+                                      backgroundColor: Colors.green,
+                                      foregroundColor: Colors.white,
+                                    ),
+                                    icon: const Icon(Icons.check_circle, size: 18),
+                                    label: const Text('Completar Meta'),
+                                    onPressed: () async {
+                                      final confirm = await showDialog<bool>(
+                                        context: context,
+                                        builder: (ctx) => AlertDialog(
+                                          title: Text('Completar "${goal.name}"?'),
+                                          content: Text(
+                                            'Se debitara \$${goal.targetAmount.toStringAsFixed(2)} de la Alcancía y se registrara como un gasto.'
+                                          ),
+                                          actions: [
+                                            TextButton(
+                                              onPressed: () => Navigator.pop(ctx, false),
+                                              child: const Text('Cancelar'),
+                                            ),
+                                            FilledButton(
+                                              onPressed: () => Navigator.pop(ctx, true),
+                                              child: const Text('Completar'),
+                                            ),
+                                          ],
+                                        ),
+                                      );
+
+                                      if (confirm != true) return;
+
+                                      try {
+                                        await ref.read(goalsDaoProvider).completeGoal(goalId: goal.id);
+                                        if (context.mounted) {
+                                          ScaffoldMessenger.of(context).showSnackBar(
+                                            SnackBar(content: Text('¡Meta "${goal.name}" completada!')),
+                                          );
+                                        }
+                                      } catch (e) {
+                                        if (context.mounted) {
+                                          ScaffoldMessenger.of(context).showSnackBar(
+                                            SnackBar(content: Text(e is StateError ? e.message : 'Error al completar meta')),
+                                          );
+                                        }
+                                      }
+                                    },
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      }),
+                      const SizedBox(height: 16),
+                    ],
                   );
                 },
               ),
