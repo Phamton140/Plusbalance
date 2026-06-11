@@ -146,9 +146,8 @@ class _GoalCard extends ConsumerWidget {
             );
           },
           onDismissed: (direction) async {
-            await (ref.read(databaseProvider).delete(ref.read(databaseProvider).goals)
-              ..where((g) => g.id.equals(goal.id)))
-              .go();
+            final db = ref.read(databaseProvider);
+            await (db.delete(db.goals)..where((g) => g.id.equals(goal.id))).go();
           },
           child: Card(
             margin: const EdgeInsets.only(bottom: 12),

@@ -20,15 +20,17 @@ class ServicesDao extends DatabaseAccessor<AppDatabase> with _$ServicesDaoMixin 
   }
 
   Stream<List<Service>> watchUpcomingServices() {
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
-    final next7Days = today.add(const Duration(days: 7, hours: 23, minutes: 59, seconds: 59));
-    
-    return (select(services)
-      ..where((t) => t.isActive.equals(true))
-      ..where((t) => t.nextDate.isBetweenValues(today, next7Days))
-      ..orderBy([(t) => OrderingTerm(expression: t.nextDate, mode: OrderingMode.asc)])
-    ).watch();
+    return Stream.periodic(const Duration(minutes: 1)).asyncMap((_) async {
+      final now = DateTime.now();
+      final today = DateTime(now.year, now.month, now.day);
+      final next7Days = today.add(const Duration(days: 7, hours: 23, minutes: 59, seconds: 59));
+
+      return (select(services)
+        ..where((t) => t.isActive.equals(true))
+        ..where((t) => t.nextDate.isBetweenValues(today, next7Days))
+        ..orderBy([(t) => OrderingTerm(expression: t.nextDate, mode: OrderingMode.asc)])
+      ).get();
+    });
   }
 
   Future<int> createService(Insertable<Service> service) {

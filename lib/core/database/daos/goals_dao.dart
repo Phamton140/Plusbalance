@@ -22,8 +22,12 @@ class GoalsDao extends DatabaseAccessor<AppDatabase> with _$GoalsDaoMixin {
   }
 
   Future<Account> getAlcanciaAccount() async {
-    return (select(accounts)..where((a) => a.id.equals(alcanciaDefaultAccountId)))
-        .getSingle();
+    final result = await (select(accounts)..where((a) => a.id.equals(alcanciaDefaultAccountId)))
+        .getSingleOrNull();
+    if (result == null) {
+      throw StateError('Cuenta Alcancía no encontrada. Verifica que exista en la base de datos.');
+    }
+    return result;
   }
 
   Stream<Account> watchAlcanciaBalance() {
@@ -43,7 +47,8 @@ class GoalsDao extends DatabaseAccessor<AppDatabase> with _$GoalsDaoMixin {
   }
 
   Future<bool> isGoalCompletable(String goalId) async {
-    final goal = await (select(goals)..where((g) => g.id.equals(goalId))).getSingle();
+    final goal = await (select(goals)..where((g) => g.id.equals(goalId))).getSingleOrNull();
+    if (goal == null) return false;
     final balance = await getAlcanciaBalance();
     return balance >= goal.targetAmount;
   }
@@ -55,7 +60,11 @@ class GoalsDao extends DatabaseAccessor<AppDatabase> with _$GoalsDaoMixin {
     await db.transaction(() async {
       final fromAccount = await (select(accounts)
             ..where((a) => a.id.equals(fromAccountId)))
-          .getSingle();
+          .getSingleOrNull();
+
+      if (fromAccount == null) {
+        throw StateError('Cuenta de origen no encontrada');
+      }
 
       if (fromAccount.balance < amount) {
         throw StateError('Saldo insuficiente en ${fromAccount.name}');
@@ -91,18 +100,20 @@ class GoalsDao extends DatabaseAccessor<AppDatabase> with _$GoalsDaoMixin {
   }) async {
     await db.transaction(() async {
       final goal = await (select(goals)..where((g) => g.id.equals(goalId)))
-          .getSingle();
+          .getSingleOrNull();
+
+      if (goal == null) {
+        throw StateError('Meta no encontrada');
+      }
 
       if (goal.status != 'active') {
         throw StateError('Esta meta ya no está activa');
       }
 
-      final balance = await getAlcanciaBalance();
-      if (balance < goal.targetAmount) {
+      final alcancia = await getAlcanciaAccount();
+      if (alcancia.balance < goal.targetAmount) {
         throw StateError('Saldo insuficiente en Alcancía');
       }
-
-      final alcancia = await getAlcanciaAccount();
 
       await into(transactions).insert(
         TransactionsCompanion.insert(
