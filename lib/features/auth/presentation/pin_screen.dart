@@ -51,7 +51,7 @@ class _PinScreenState extends ConsumerState<PinScreen> {
 
   void _onDigit(String d) {
     if (_busy || _pin.length >= _pinLength) return;
-    HapticFeedback.selectionClick();
+    HapticFeedback.lightImpact();
     setState(() {
       _pin += d;
       _errorText = null;
@@ -108,12 +108,14 @@ class _PinScreenState extends ConsumerState<PinScreen> {
           if (!ok) {
             _failedAttempts++;
             if (_failedAttempts >= _maxAttempts) {
+              HapticFeedback.heavyImpact();
               setState(() {
                 _pin = '';
                 _errorText = 'Demasiados intentos. Cierra y abre la app para continuar.';
               });
               return;
             }
+            HapticFeedback.heavyImpact();
             setState(() {
               _pin = '';
               _errorText = 'PIN incorrecto (intento $_failedAttempts de $_maxAttempts)';
@@ -131,6 +133,7 @@ class _PinScreenState extends ConsumerState<PinScreen> {
               _pin = '';
             });
           } else {
+            HapticFeedback.heavyImpact();
             setState(() {
               _pin = '';
               _errorText = 'PIN actual incorrecto';
