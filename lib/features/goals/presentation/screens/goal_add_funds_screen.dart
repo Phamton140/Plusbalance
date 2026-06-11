@@ -4,9 +4,7 @@ import '../../../../core/database/app_database.dart';
 import '../../../../core/providers/database_provider.dart';
 
 class GoalAddFundsScreen extends ConsumerStatefulWidget {
-  final Goal goal;
-
-  const GoalAddFundsScreen({super.key, required this.goal});
+  const GoalAddFundsScreen({super.key});
 
   @override
   ConsumerState<GoalAddFundsScreen> createState() => _GoalAddFundsScreenState();
@@ -43,16 +41,15 @@ class _GoalAddFundsScreenState extends ConsumerState<GoalAddFundsScreen> {
 
     setState(() => _saving = true);
     try {
-      await ref.read(goalsDaoProvider).addFundsToGoal(
-            goalId: widget.goal.id,
-            accountId: _selectedAccountId!,
+      await ref.read(goalsDaoProvider).addFundsToAlcancia(
+            fromAccountId: _selectedAccountId!,
             amount: amount,
           );
       if (mounted) Navigator.pop(context);
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e is StateError ? e.message : 'No se pudo registrar el abono')),
+          SnackBar(content: Text(e is StateError ? e.message : 'No se pudo transferir a Alcancía')),
         );
       }
     } finally {
@@ -65,14 +62,40 @@ class _GoalAddFundsScreenState extends ConsumerState<GoalAddFundsScreen> {
     final accountsAsync = ref.watch(activeAccountsProvider);
 
     return Scaffold(
-      appBar: AppBar(title: Text('Abonar a ${widget.goal.name}')),
+      appBar: AppBar(title: const Text('Enviar a Alcancía')),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(16.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('Monto a abonar', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.amber.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.savings, color: Colors.amber, size: 48),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text('Alcancía', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+                          Text(
+                            'El dinero se guarda aquí y se muestra en el progreso de todas tus metas',
+                            style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 24),
+              const Text('Monto a transferir', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
               const SizedBox(height: 8),
               TextField(
                 controller: _amountController,
@@ -85,7 +108,7 @@ class _GoalAddFundsScreenState extends ConsumerState<GoalAddFundsScreen> {
                 ),
               ),
               const SizedBox(height: 24),
-              const Text('Cuenta a debitar', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              const Text('Cuenta de origen', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
               const SizedBox(height: 8),
               accountsAsync.when(
                 data: (accounts) {
@@ -104,10 +127,13 @@ class _GoalAddFundsScreenState extends ConsumerState<GoalAddFundsScreen> {
                     decoration: const InputDecoration(
                       border: OutlineInputBorder(),
                     ),
-                    items: accounts.map((a) => DropdownMenuItem(
-                      value: a.id,
-                      child: Text('${a.name}  ·  \$${a.balance.toStringAsFixed(2)}', overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 14)),
-                    )).toList(),
+                    items: accounts
+                        .where((a) => a.id != alcanciaDefaultAccountId)
+                        .map((a) => DropdownMenuItem(
+                              value: a.id,
+                              child: Text('${a.name}  ·  \$${a.balance.toStringAsFixed(2)}', overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 14)),
+                            ))
+                        .toList(),
                     onChanged: _saving ? null : (val) => setState(() => _selectedAccountId = val),
                   );
                 },
@@ -119,7 +145,7 @@ class _GoalAddFundsScreenState extends ConsumerState<GoalAddFundsScreen> {
               ),
               const SizedBox(height: 12),
               const Text(
-                'Este abono se registrará como un gasto en la categoría "Ahorro / Metas" para reflejar el débito de tu cuenta y sumarse al gráfico de gastos del dashboard.',
+                'El dinero transferido a la Alcancía se mostrará como progreso en todas tus metas activas. Cuando decidas completar una meta, se debitara de la Alcancía.',
                 style: TextStyle(fontSize: 12, color: Colors.grey),
               ),
               const SizedBox(height: 24),
@@ -129,12 +155,12 @@ class _GoalAddFundsScreenState extends ConsumerState<GoalAddFundsScreen> {
                 child: ElevatedButton(
                   onPressed: _saving ? null : _save,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.green,
+                    backgroundColor: Colors.amber.shade700,
                     foregroundColor: Colors.white,
                   ),
                   child: _saving
                       ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5))
-                      : const Text('Confirmar Abono', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                      : const Text('Transferir a Alcancía', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                 ),
               ),
             ],
