@@ -11,7 +11,6 @@ class GoalsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final goalsStream = ref.watch(activeGoalsProvider);
-    final alcanciaStream = ref.watch(goalsDaoProvider).watchAlcanciaBalance();
 
     return Scaffold(
       appBar: AppBar(title: const Text('Metas de Ahorro')),
@@ -22,8 +21,10 @@ class GoalsScreen extends ConsumerWidget {
           }
           return Column(
             children: [
-              alcanciaStream.when(
-                data: (alcancia) {
+              StreamBuilder<Account>(
+                stream: ref.watch(goalsDaoProvider).watchAlcanciaBalance(),
+                builder: (context, snapshot) {
+                  final balance = snapshot.data?.balance ?? 0.0;
                   return Container(
                     margin: const EdgeInsets.all(16),
                     padding: const EdgeInsets.all(20),
@@ -52,7 +53,7 @@ class GoalsScreen extends ConsumerWidget {
                             children: [
                               const Text('En Alcancía', style: TextStyle(color: Colors.white70, fontSize: 14)),
                               Text(
-                                '\$${alcancia.balance.toStringAsFixed(2)}',
+                                '\$${balance.toStringAsFixed(2)}',
                                 style: const TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.bold),
                               ),
                             ],
@@ -69,8 +70,6 @@ class GoalsScreen extends ConsumerWidget {
                     ),
                   );
                 },
-                loading: () => const SizedBox(),
-                error: (_, __) => const SizedBox(),
               ),
               Expanded(
                 child: ListView.builder(
@@ -90,10 +89,7 @@ class GoalsScreen extends ConsumerWidget {
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const GoalFormScreen()),
-          );
+          Navigator.push(context, MaterialPageRoute(builder: (_) => const GoalFormScreen()));
         },
         icon: const Icon(Icons.flag),
         label: const Text('Nueva Meta'),
@@ -109,10 +105,10 @@ class _GoalCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return StreamBuilder<double>(
-      stream: ref.watch(goalsDaoProvider).watchAlcanciaBalance().map((a) => a.balance),
+    return StreamBuilder<Account>(
+      stream: ref.watch(goalsDaoProvider).watchAlcanciaBalance(),
       builder: (context, snapshot) {
-        final alcanciaBalance = snapshot.data ?? 0.0;
+        final alcanciaBalance = snapshot.data?.balance ?? 0.0;
         final effectiveAmount = alcanciaBalance.clamp(0.0, goal.targetAmount);
         final progress = goal.targetAmount > 0 ? effectiveAmount / goal.targetAmount : 0.0;
         final isCompletable = alcanciaBalance >= goal.targetAmount;
@@ -129,20 +125,18 @@ class _GoalCard extends ConsumerWidget {
           confirmDismiss: (direction) async {
             return await showDialog(
               context: context,
-              builder: (BuildContext context) {
-                return AlertDialog(
-                  title: const Text("Eliminar Meta"),
-                  content: const Text("¿Estás seguro de que quieres eliminar esta meta?"),
-                  actions: [
-                    TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text("Cancelar")),
-                    ElevatedButton(
-                      style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-                      onPressed: () => Navigator.of(context).pop(true),
-                      child: const Text("Eliminar")
-                    ),
-                  ],
-                );
-              },
+              builder: (context) => AlertDialog(
+                title: const Text("Eliminar Meta"),
+                content: const Text("¿Estás seguro de que quieres eliminar esta meta?"),
+                actions: [
+                  TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text("Cancelar")),
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                    onPressed: () => Navigator.of(context).pop(true),
+                    child: const Text("Eliminar")
+                  ),
+                ],
+              ),
             );
           },
           onDismissed: (direction) async {
@@ -246,15 +240,11 @@ class _GoalCard extends ConsumerWidget {
     try {
       await ref.read(goalsDaoProvider).completeGoal(goalId: goal.id);
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('¡Meta "${goal.name}" completada!')),
-        );
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('¡Meta "${goal.name}" completada!')));
       }
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e is StateError ? e.message : 'Error al completar meta')),
-        );
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e is StateError ? e.message : 'Error al completar meta')));
       }
     }
   }

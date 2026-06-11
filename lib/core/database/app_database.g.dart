@@ -1625,7 +1625,7 @@ class $ServicesTable extends Services with TableInfo<$ServicesTable, Service> {
     false,
     type: DriftSqlType.string,
     requiredDuringInsert: false,
-    defaultValue: const Constant('none'),
+    defaultValue: const Constant('need'),
   );
   static const VerificationMeta _frequencyMeta = const VerificationMeta(
     'frequency',
@@ -1648,6 +1648,17 @@ class $ServicesTable extends Services with TableInfo<$ServicesTable, Service> {
     false,
     type: DriftSqlType.dateTime,
     requiredDuringInsert: true,
+  );
+  static const VerificationMeta _endDateMeta = const VerificationMeta(
+    'endDate',
+  );
+  @override
+  late final GeneratedColumn<DateTime> endDate = GeneratedColumn<DateTime>(
+    'end_date',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
   );
   static const VerificationMeta _accountIdMeta = const VerificationMeta(
     'accountId',
@@ -1759,6 +1770,7 @@ class $ServicesTable extends Services with TableInfo<$ServicesTable, Service> {
     label,
     frequency,
     nextDate,
+    endDate,
     accountId,
     categoryId,
     reminderDaysBefore,
@@ -1840,6 +1852,12 @@ class $ServicesTable extends Services with TableInfo<$ServicesTable, Service> {
       );
     } else if (isInserting) {
       context.missing(_nextDateMeta);
+    }
+    if (data.containsKey('end_date')) {
+      context.handle(
+        _endDateMeta,
+        endDate.isAcceptableOrUnknown(data['end_date']!, _endDateMeta),
+      );
     }
     if (data.containsKey('account_id')) {
       context.handle(
@@ -1940,6 +1958,10 @@ class $ServicesTable extends Services with TableInfo<$ServicesTable, Service> {
         DriftSqlType.dateTime,
         data['${effectivePrefix}next_date'],
       )!,
+      endDate: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}end_date'],
+      ),
       accountId: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}account_id'],
@@ -1991,6 +2013,7 @@ class Service extends DataClass implements Insertable<Service> {
   final String label;
   final String frequency;
   final DateTime nextDate;
+  final DateTime? endDate;
   final String? accountId;
   final String? categoryId;
   final int reminderDaysBefore;
@@ -2009,6 +2032,7 @@ class Service extends DataClass implements Insertable<Service> {
     required this.label,
     required this.frequency,
     required this.nextDate,
+    this.endDate,
     this.accountId,
     this.categoryId,
     required this.reminderDaysBefore,
@@ -2030,6 +2054,9 @@ class Service extends DataClass implements Insertable<Service> {
     map['label'] = Variable<String>(label);
     map['frequency'] = Variable<String>(frequency);
     map['next_date'] = Variable<DateTime>(nextDate);
+    if (!nullToAbsent || endDate != null) {
+      map['end_date'] = Variable<DateTime>(endDate);
+    }
     if (!nullToAbsent || accountId != null) {
       map['account_id'] = Variable<String>(accountId);
     }
@@ -2056,6 +2083,9 @@ class Service extends DataClass implements Insertable<Service> {
       label: Value(label),
       frequency: Value(frequency),
       nextDate: Value(nextDate),
+      endDate: endDate == null && nullToAbsent
+          ? const Value.absent()
+          : Value(endDate),
       accountId: accountId == null && nullToAbsent
           ? const Value.absent()
           : Value(accountId),
@@ -2086,6 +2116,7 @@ class Service extends DataClass implements Insertable<Service> {
       label: serializer.fromJson<String>(json['label']),
       frequency: serializer.fromJson<String>(json['frequency']),
       nextDate: serializer.fromJson<DateTime>(json['nextDate']),
+      endDate: serializer.fromJson<DateTime?>(json['endDate']),
       accountId: serializer.fromJson<String?>(json['accountId']),
       categoryId: serializer.fromJson<String?>(json['categoryId']),
       reminderDaysBefore: serializer.fromJson<int>(json['reminderDaysBefore']),
@@ -2111,6 +2142,7 @@ class Service extends DataClass implements Insertable<Service> {
       'label': serializer.toJson<String>(label),
       'frequency': serializer.toJson<String>(frequency),
       'nextDate': serializer.toJson<DateTime>(nextDate),
+      'endDate': serializer.toJson<DateTime?>(endDate),
       'accountId': serializer.toJson<String?>(accountId),
       'categoryId': serializer.toJson<String?>(categoryId),
       'reminderDaysBefore': serializer.toJson<int>(reminderDaysBefore),
@@ -2134,6 +2166,7 @@ class Service extends DataClass implements Insertable<Service> {
     String? label,
     String? frequency,
     DateTime? nextDate,
+    Value<DateTime?> endDate = const Value.absent(),
     Value<String?> accountId = const Value.absent(),
     Value<String?> categoryId = const Value.absent(),
     int? reminderDaysBefore,
@@ -2152,6 +2185,7 @@ class Service extends DataClass implements Insertable<Service> {
     label: label ?? this.label,
     frequency: frequency ?? this.frequency,
     nextDate: nextDate ?? this.nextDate,
+    endDate: endDate.present ? endDate.value : this.endDate,
     accountId: accountId.present ? accountId.value : this.accountId,
     categoryId: categoryId.present ? categoryId.value : this.categoryId,
     reminderDaysBefore: reminderDaysBefore ?? this.reminderDaysBefore,
@@ -2173,6 +2207,7 @@ class Service extends DataClass implements Insertable<Service> {
       label: data.label.present ? data.label.value : this.label,
       frequency: data.frequency.present ? data.frequency.value : this.frequency,
       nextDate: data.nextDate.present ? data.nextDate.value : this.nextDate,
+      endDate: data.endDate.present ? data.endDate.value : this.endDate,
       accountId: data.accountId.present ? data.accountId.value : this.accountId,
       categoryId: data.categoryId.present
           ? data.categoryId.value
@@ -2202,6 +2237,7 @@ class Service extends DataClass implements Insertable<Service> {
           ..write('label: $label, ')
           ..write('frequency: $frequency, ')
           ..write('nextDate: $nextDate, ')
+          ..write('endDate: $endDate, ')
           ..write('accountId: $accountId, ')
           ..write('categoryId: $categoryId, ')
           ..write('reminderDaysBefore: $reminderDaysBefore, ')
@@ -2225,6 +2261,7 @@ class Service extends DataClass implements Insertable<Service> {
     label,
     frequency,
     nextDate,
+    endDate,
     accountId,
     categoryId,
     reminderDaysBefore,
@@ -2247,6 +2284,7 @@ class Service extends DataClass implements Insertable<Service> {
           other.label == this.label &&
           other.frequency == this.frequency &&
           other.nextDate == this.nextDate &&
+          other.endDate == this.endDate &&
           other.accountId == this.accountId &&
           other.categoryId == this.categoryId &&
           other.reminderDaysBefore == this.reminderDaysBefore &&
@@ -2267,6 +2305,7 @@ class ServicesCompanion extends UpdateCompanion<Service> {
   final Value<String> label;
   final Value<String> frequency;
   final Value<DateTime> nextDate;
+  final Value<DateTime?> endDate;
   final Value<String?> accountId;
   final Value<String?> categoryId;
   final Value<int> reminderDaysBefore;
@@ -2286,6 +2325,7 @@ class ServicesCompanion extends UpdateCompanion<Service> {
     this.label = const Value.absent(),
     this.frequency = const Value.absent(),
     this.nextDate = const Value.absent(),
+    this.endDate = const Value.absent(),
     this.accountId = const Value.absent(),
     this.categoryId = const Value.absent(),
     this.reminderDaysBefore = const Value.absent(),
@@ -2306,6 +2346,7 @@ class ServicesCompanion extends UpdateCompanion<Service> {
     this.label = const Value.absent(),
     required String frequency,
     required DateTime nextDate,
+    this.endDate = const Value.absent(),
     this.accountId = const Value.absent(),
     this.categoryId = const Value.absent(),
     this.reminderDaysBefore = const Value.absent(),
@@ -2330,6 +2371,7 @@ class ServicesCompanion extends UpdateCompanion<Service> {
     Expression<String>? label,
     Expression<String>? frequency,
     Expression<DateTime>? nextDate,
+    Expression<DateTime>? endDate,
     Expression<String>? accountId,
     Expression<String>? categoryId,
     Expression<int>? reminderDaysBefore,
@@ -2350,6 +2392,7 @@ class ServicesCompanion extends UpdateCompanion<Service> {
       if (label != null) 'label': label,
       if (frequency != null) 'frequency': frequency,
       if (nextDate != null) 'next_date': nextDate,
+      if (endDate != null) 'end_date': endDate,
       if (accountId != null) 'account_id': accountId,
       if (categoryId != null) 'category_id': categoryId,
       if (reminderDaysBefore != null)
@@ -2374,6 +2417,7 @@ class ServicesCompanion extends UpdateCompanion<Service> {
     Value<String>? label,
     Value<String>? frequency,
     Value<DateTime>? nextDate,
+    Value<DateTime?>? endDate,
     Value<String?>? accountId,
     Value<String?>? categoryId,
     Value<int>? reminderDaysBefore,
@@ -2394,6 +2438,7 @@ class ServicesCompanion extends UpdateCompanion<Service> {
       label: label ?? this.label,
       frequency: frequency ?? this.frequency,
       nextDate: nextDate ?? this.nextDate,
+      endDate: endDate ?? this.endDate,
       accountId: accountId ?? this.accountId,
       categoryId: categoryId ?? this.categoryId,
       reminderDaysBefore: reminderDaysBefore ?? this.reminderDaysBefore,
@@ -2436,6 +2481,9 @@ class ServicesCompanion extends UpdateCompanion<Service> {
     }
     if (nextDate.present) {
       map['next_date'] = Variable<DateTime>(nextDate.value);
+    }
+    if (endDate.present) {
+      map['end_date'] = Variable<DateTime>(endDate.value);
     }
     if (accountId.present) {
       map['account_id'] = Variable<String>(accountId.value);
@@ -2481,6 +2529,7 @@ class ServicesCompanion extends UpdateCompanion<Service> {
           ..write('label: $label, ')
           ..write('frequency: $frequency, ')
           ..write('nextDate: $nextDate, ')
+          ..write('endDate: $endDate, ')
           ..write('accountId: $accountId, ')
           ..write('categoryId: $categoryId, ')
           ..write('reminderDaysBefore: $reminderDaysBefore, ')
@@ -3704,6 +3753,20 @@ class $GoalsTable extends Goals with TableInfo<$GoalsTable, Goal> {
     requiredDuringInsert: false,
     defaultValue: const Constant('active'),
   );
+  static const VerificationMeta _alcanciaIdMeta = const VerificationMeta(
+    'alcanciaId',
+  );
+  @override
+  late final GeneratedColumn<String> alcanciaId = GeneratedColumn<String>(
+    'alcancia_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES accounts (id)',
+    ),
+  );
   @override
   List<GeneratedColumn> get $columns => [
     createdAt,
@@ -3717,6 +3780,7 @@ class $GoalsTable extends Goals with TableInfo<$GoalsTable, Goal> {
     priority,
     color,
     status,
+    alcanciaId,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -3805,6 +3869,12 @@ class $GoalsTable extends Goals with TableInfo<$GoalsTable, Goal> {
         status.isAcceptableOrUnknown(data['status']!, _statusMeta),
       );
     }
+    if (data.containsKey('alcancia_id')) {
+      context.handle(
+        _alcanciaIdMeta,
+        alcanciaId.isAcceptableOrUnknown(data['alcancia_id']!, _alcanciaIdMeta),
+      );
+    }
     return context;
   }
 
@@ -3858,6 +3928,10 @@ class $GoalsTable extends Goals with TableInfo<$GoalsTable, Goal> {
         DriftSqlType.string,
         data['${effectivePrefix}status'],
       )!,
+      alcanciaId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}alcancia_id'],
+      ),
     );
   }
 
@@ -3879,6 +3953,7 @@ class Goal extends DataClass implements Insertable<Goal> {
   final int priority;
   final String color;
   final String status;
+  final String? alcanciaId;
   const Goal({
     required this.createdAt,
     required this.updatedAt,
@@ -3891,6 +3966,7 @@ class Goal extends DataClass implements Insertable<Goal> {
     required this.priority,
     required this.color,
     required this.status,
+    this.alcanciaId,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -3910,6 +3986,9 @@ class Goal extends DataClass implements Insertable<Goal> {
     map['priority'] = Variable<int>(priority);
     map['color'] = Variable<String>(color);
     map['status'] = Variable<String>(status);
+    if (!nullToAbsent || alcanciaId != null) {
+      map['alcancia_id'] = Variable<String>(alcanciaId);
+    }
     return map;
   }
 
@@ -3928,6 +4007,9 @@ class Goal extends DataClass implements Insertable<Goal> {
       priority: Value(priority),
       color: Value(color),
       status: Value(status),
+      alcanciaId: alcanciaId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(alcanciaId),
     );
   }
 
@@ -3948,6 +4030,7 @@ class Goal extends DataClass implements Insertable<Goal> {
       priority: serializer.fromJson<int>(json['priority']),
       color: serializer.fromJson<String>(json['color']),
       status: serializer.fromJson<String>(json['status']),
+      alcanciaId: serializer.fromJson<String?>(json['alcanciaId']),
     );
   }
   @override
@@ -3965,6 +4048,7 @@ class Goal extends DataClass implements Insertable<Goal> {
       'priority': serializer.toJson<int>(priority),
       'color': serializer.toJson<String>(color),
       'status': serializer.toJson<String>(status),
+      'alcanciaId': serializer.toJson<String?>(alcanciaId),
     };
   }
 
@@ -3980,6 +4064,7 @@ class Goal extends DataClass implements Insertable<Goal> {
     int? priority,
     String? color,
     String? status,
+    Value<String?> alcanciaId = const Value.absent(),
   }) => Goal(
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
@@ -3992,6 +4077,7 @@ class Goal extends DataClass implements Insertable<Goal> {
     priority: priority ?? this.priority,
     color: color ?? this.color,
     status: status ?? this.status,
+    alcanciaId: alcanciaId.present ? alcanciaId.value : this.alcanciaId,
   );
   Goal copyWithCompanion(GoalsCompanion data) {
     return Goal(
@@ -4012,6 +4098,9 @@ class Goal extends DataClass implements Insertable<Goal> {
       priority: data.priority.present ? data.priority.value : this.priority,
       color: data.color.present ? data.color.value : this.color,
       status: data.status.present ? data.status.value : this.status,
+      alcanciaId: data.alcanciaId.present
+          ? data.alcanciaId.value
+          : this.alcanciaId,
     );
   }
 
@@ -4028,7 +4117,8 @@ class Goal extends DataClass implements Insertable<Goal> {
           ..write('icon: $icon, ')
           ..write('priority: $priority, ')
           ..write('color: $color, ')
-          ..write('status: $status')
+          ..write('status: $status, ')
+          ..write('alcanciaId: $alcanciaId')
           ..write(')'))
         .toString();
   }
@@ -4046,6 +4136,7 @@ class Goal extends DataClass implements Insertable<Goal> {
     priority,
     color,
     status,
+    alcanciaId,
   );
   @override
   bool operator ==(Object other) =>
@@ -4061,7 +4152,8 @@ class Goal extends DataClass implements Insertable<Goal> {
           other.icon == this.icon &&
           other.priority == this.priority &&
           other.color == this.color &&
-          other.status == this.status);
+          other.status == this.status &&
+          other.alcanciaId == this.alcanciaId);
 }
 
 class GoalsCompanion extends UpdateCompanion<Goal> {
@@ -4076,6 +4168,7 @@ class GoalsCompanion extends UpdateCompanion<Goal> {
   final Value<int> priority;
   final Value<String> color;
   final Value<String> status;
+  final Value<String?> alcanciaId;
   final Value<int> rowid;
   const GoalsCompanion({
     this.createdAt = const Value.absent(),
@@ -4089,6 +4182,7 @@ class GoalsCompanion extends UpdateCompanion<Goal> {
     this.priority = const Value.absent(),
     this.color = const Value.absent(),
     this.status = const Value.absent(),
+    this.alcanciaId = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   GoalsCompanion.insert({
@@ -4103,6 +4197,7 @@ class GoalsCompanion extends UpdateCompanion<Goal> {
     this.priority = const Value.absent(),
     this.color = const Value.absent(),
     this.status = const Value.absent(),
+    this.alcanciaId = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        name = Value(name),
@@ -4119,6 +4214,7 @@ class GoalsCompanion extends UpdateCompanion<Goal> {
     Expression<int>? priority,
     Expression<String>? color,
     Expression<String>? status,
+    Expression<String>? alcanciaId,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -4133,6 +4229,7 @@ class GoalsCompanion extends UpdateCompanion<Goal> {
       if (priority != null) 'priority': priority,
       if (color != null) 'color': color,
       if (status != null) 'status': status,
+      if (alcanciaId != null) 'alcancia_id': alcanciaId,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -4149,6 +4246,7 @@ class GoalsCompanion extends UpdateCompanion<Goal> {
     Value<int>? priority,
     Value<String>? color,
     Value<String>? status,
+    Value<String?>? alcanciaId,
     Value<int>? rowid,
   }) {
     return GoalsCompanion(
@@ -4163,6 +4261,7 @@ class GoalsCompanion extends UpdateCompanion<Goal> {
       priority: priority ?? this.priority,
       color: color ?? this.color,
       status: status ?? this.status,
+      alcanciaId: alcanciaId ?? this.alcanciaId,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -4203,6 +4302,9 @@ class GoalsCompanion extends UpdateCompanion<Goal> {
     if (status.present) {
       map['status'] = Variable<String>(status.value);
     }
+    if (alcanciaId.present) {
+      map['alcancia_id'] = Variable<String>(alcanciaId.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -4223,6 +4325,7 @@ class GoalsCompanion extends UpdateCompanion<Goal> {
           ..write('priority: $priority, ')
           ..write('color: $color, ')
           ..write('status: $status, ')
+          ..write('alcanciaId: $alcanciaId, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -6083,6 +6186,25 @@ final class $$AccountsTableReferences
       manager.$state.copyWith(prefetchedData: cache),
     );
   }
+
+  static MultiTypedResultKey<$GoalsTable, List<Goal>> _goalsRefsTable(
+    _$AppDatabase db,
+  ) => MultiTypedResultKey.fromTable(
+    db.goals,
+    aliasName: $_aliasNameGenerator(db.accounts.id, db.goals.alcanciaId),
+  );
+
+  $$GoalsTableProcessedTableManager get goalsRefs {
+    final manager = $$GoalsTableTableManager(
+      $_db,
+      $_db.goals,
+    ).filter((f) => f.alcanciaId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_goalsRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
 }
 
 class $$AccountsTableFilterComposer
@@ -6235,6 +6357,31 @@ class $$AccountsTableFilterComposer
           }) => $$TransactionsTableFilterComposer(
             $db: $db,
             $table: $db.transactions,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<bool> goalsRefs(
+    Expression<bool> Function($$GoalsTableFilterComposer f) f,
+  ) {
+    final $$GoalsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.goals,
+      getReferencedColumn: (t) => t.alcanciaId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$GoalsTableFilterComposer(
+            $db: $db,
+            $table: $db.goals,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -6495,6 +6642,31 @@ class $$AccountsTableAnnotationComposer
     );
     return f(composer);
   }
+
+  Expression<T> goalsRefs<T extends Object>(
+    Expression<T> Function($$GoalsTableAnnotationComposer a) f,
+  ) {
+    final $$GoalsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.goals,
+      getReferencedColumn: (t) => t.alcanciaId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$GoalsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.goals,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
 }
 
 class $$AccountsTableTableManager
@@ -6510,7 +6682,11 @@ class $$AccountsTableTableManager
           $$AccountsTableUpdateCompanionBuilder,
           (Account, $$AccountsTableReferences),
           Account,
-          PrefetchHooks Function({bool servicesRefs, bool transactionsRefs})
+          PrefetchHooks Function({
+            bool servicesRefs,
+            bool transactionsRefs,
+            bool goalsRefs,
+          })
         > {
   $$AccountsTableTableManager(_$AppDatabase db, $AccountsTable table)
     : super(
@@ -6624,12 +6800,17 @@ class $$AccountsTableTableManager
               )
               .toList(),
           prefetchHooksCallback:
-              ({servicesRefs = false, transactionsRefs = false}) {
+              ({
+                servicesRefs = false,
+                transactionsRefs = false,
+                goalsRefs = false,
+              }) {
                 return PrefetchHooks(
                   db: db,
                   explicitlyWatchedTables: [
                     if (servicesRefs) db.services,
                     if (transactionsRefs) db.transactions,
+                    if (goalsRefs) db.goals,
                   ],
                   addJoins: null,
                   getPrefetchedDataCallback: (items) async {
@@ -6676,6 +6857,27 @@ class $$AccountsTableTableManager
                               ),
                           typedResults: items,
                         ),
+                      if (goalsRefs)
+                        await $_getPrefetchedData<
+                          Account,
+                          $AccountsTable,
+                          Goal
+                        >(
+                          currentTable: table,
+                          referencedTable: $$AccountsTableReferences
+                              ._goalsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$AccountsTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).goalsRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.alcanciaId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
                     ];
                   },
                 );
@@ -6696,7 +6898,11 @@ typedef $$AccountsTableProcessedTableManager =
       $$AccountsTableUpdateCompanionBuilder,
       (Account, $$AccountsTableReferences),
       Account,
-      PrefetchHooks Function({bool servicesRefs, bool transactionsRefs})
+      PrefetchHooks Function({
+        bool servicesRefs,
+        bool transactionsRefs,
+        bool goalsRefs,
+      })
     >;
 typedef $$ServicesTableCreateCompanionBuilder =
     ServicesCompanion Function({
@@ -6709,6 +6915,7 @@ typedef $$ServicesTableCreateCompanionBuilder =
       Value<String> label,
       required String frequency,
       required DateTime nextDate,
+      Value<DateTime?> endDate,
       Value<String?> accountId,
       Value<String?> categoryId,
       Value<int> reminderDaysBefore,
@@ -6730,6 +6937,7 @@ typedef $$ServicesTableUpdateCompanionBuilder =
       Value<String> label,
       Value<String> frequency,
       Value<DateTime> nextDate,
+      Value<DateTime?> endDate,
       Value<String?> accountId,
       Value<String?> categoryId,
       Value<int> reminderDaysBefore,
@@ -6851,6 +7059,11 @@ class $$ServicesTableFilterComposer
 
   ColumnFilters<DateTime> get nextDate => $composableBuilder(
     column: $table.nextDate,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get endDate => $composableBuilder(
+    column: $table.endDate,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -7010,6 +7223,11 @@ class $$ServicesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<DateTime> get endDate => $composableBuilder(
+    column: $table.endDate,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<int> get reminderDaysBefore => $composableBuilder(
     column: $table.reminderDaysBefore,
     builder: (column) => ColumnOrderings(column),
@@ -7122,6 +7340,9 @@ class $$ServicesTableAnnotationComposer
 
   GeneratedColumn<DateTime> get nextDate =>
       $composableBuilder(column: $table.nextDate, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get endDate =>
+      $composableBuilder(column: $table.endDate, builder: (column) => column);
 
   GeneratedColumn<int> get reminderDaysBefore => $composableBuilder(
     column: $table.reminderDaysBefore,
@@ -7258,6 +7479,7 @@ class $$ServicesTableTableManager
                 Value<String> label = const Value.absent(),
                 Value<String> frequency = const Value.absent(),
                 Value<DateTime> nextDate = const Value.absent(),
+                Value<DateTime?> endDate = const Value.absent(),
                 Value<String?> accountId = const Value.absent(),
                 Value<String?> categoryId = const Value.absent(),
                 Value<int> reminderDaysBefore = const Value.absent(),
@@ -7277,6 +7499,7 @@ class $$ServicesTableTableManager
                 label: label,
                 frequency: frequency,
                 nextDate: nextDate,
+                endDate: endDate,
                 accountId: accountId,
                 categoryId: categoryId,
                 reminderDaysBefore: reminderDaysBefore,
@@ -7298,6 +7521,7 @@ class $$ServicesTableTableManager
                 Value<String> label = const Value.absent(),
                 required String frequency,
                 required DateTime nextDate,
+                Value<DateTime?> endDate = const Value.absent(),
                 Value<String?> accountId = const Value.absent(),
                 Value<String?> categoryId = const Value.absent(),
                 Value<int> reminderDaysBefore = const Value.absent(),
@@ -7317,6 +7541,7 @@ class $$ServicesTableTableManager
                 label: label,
                 frequency: frequency,
                 nextDate: nextDate,
+                endDate: endDate,
                 accountId: accountId,
                 categoryId: categoryId,
                 reminderDaysBefore: reminderDaysBefore,
@@ -8443,6 +8668,7 @@ typedef $$GoalsTableCreateCompanionBuilder =
       Value<int> priority,
       Value<String> color,
       Value<String> status,
+      Value<String?> alcanciaId,
       Value<int> rowid,
     });
 typedef $$GoalsTableUpdateCompanionBuilder =
@@ -8458,8 +8684,31 @@ typedef $$GoalsTableUpdateCompanionBuilder =
       Value<int> priority,
       Value<String> color,
       Value<String> status,
+      Value<String?> alcanciaId,
       Value<int> rowid,
     });
+
+final class $$GoalsTableReferences
+    extends BaseReferences<_$AppDatabase, $GoalsTable, Goal> {
+  $$GoalsTableReferences(super.$_db, super.$_table, super.$_typedResult);
+
+  static $AccountsTable _alcanciaIdTable(_$AppDatabase db) => db.accounts
+      .createAlias($_aliasNameGenerator(db.goals.alcanciaId, db.accounts.id));
+
+  $$AccountsTableProcessedTableManager? get alcanciaId {
+    final $_column = $_itemColumn<String>('alcancia_id');
+    if ($_column == null) return null;
+    final manager = $$AccountsTableTableManager(
+      $_db,
+      $_db.accounts,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_alcanciaIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+}
 
 class $$GoalsTableFilterComposer extends Composer<_$AppDatabase, $GoalsTable> {
   $$GoalsTableFilterComposer({
@@ -8523,6 +8772,29 @@ class $$GoalsTableFilterComposer extends Composer<_$AppDatabase, $GoalsTable> {
     column: $table.status,
     builder: (column) => ColumnFilters(column),
   );
+
+  $$AccountsTableFilterComposer get alcanciaId {
+    final $$AccountsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.alcanciaId,
+      referencedTable: $db.accounts,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$AccountsTableFilterComposer(
+            $db: $db,
+            $table: $db.accounts,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
 }
 
 class $$GoalsTableOrderingComposer
@@ -8588,6 +8860,29 @@ class $$GoalsTableOrderingComposer
     column: $table.status,
     builder: (column) => ColumnOrderings(column),
   );
+
+  $$AccountsTableOrderingComposer get alcanciaId {
+    final $$AccountsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.alcanciaId,
+      referencedTable: $db.accounts,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$AccountsTableOrderingComposer(
+            $db: $db,
+            $table: $db.accounts,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
 }
 
 class $$GoalsTableAnnotationComposer
@@ -8637,6 +8932,29 @@ class $$GoalsTableAnnotationComposer
 
   GeneratedColumn<String> get status =>
       $composableBuilder(column: $table.status, builder: (column) => column);
+
+  $$AccountsTableAnnotationComposer get alcanciaId {
+    final $$AccountsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.alcanciaId,
+      referencedTable: $db.accounts,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$AccountsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.accounts,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
 }
 
 class $$GoalsTableTableManager
@@ -8650,9 +8968,9 @@ class $$GoalsTableTableManager
           $$GoalsTableAnnotationComposer,
           $$GoalsTableCreateCompanionBuilder,
           $$GoalsTableUpdateCompanionBuilder,
-          (Goal, BaseReferences<_$AppDatabase, $GoalsTable, Goal>),
+          (Goal, $$GoalsTableReferences),
           Goal,
-          PrefetchHooks Function()
+          PrefetchHooks Function({bool alcanciaId})
         > {
   $$GoalsTableTableManager(_$AppDatabase db, $GoalsTable table)
     : super(
@@ -8678,6 +8996,7 @@ class $$GoalsTableTableManager
                 Value<int> priority = const Value.absent(),
                 Value<String> color = const Value.absent(),
                 Value<String> status = const Value.absent(),
+                Value<String?> alcanciaId = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => GoalsCompanion(
                 createdAt: createdAt,
@@ -8691,6 +9010,7 @@ class $$GoalsTableTableManager
                 priority: priority,
                 color: color,
                 status: status,
+                alcanciaId: alcanciaId,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -8706,6 +9026,7 @@ class $$GoalsTableTableManager
                 Value<int> priority = const Value.absent(),
                 Value<String> color = const Value.absent(),
                 Value<String> status = const Value.absent(),
+                Value<String?> alcanciaId = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => GoalsCompanion.insert(
                 createdAt: createdAt,
@@ -8719,12 +9040,56 @@ class $$GoalsTableTableManager
                 priority: priority,
                 color: color,
                 status: status,
+                alcanciaId: alcanciaId,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
-              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .map(
+                (e) =>
+                    (e.readTable(table), $$GoalsTableReferences(db, table, e)),
+              )
               .toList(),
-          prefetchHooksCallback: null,
+          prefetchHooksCallback: ({alcanciaId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins:
+                  <
+                    T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic
+                    >
+                  >(state) {
+                    if (alcanciaId) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.alcanciaId,
+                                referencedTable: $$GoalsTableReferences
+                                    ._alcanciaIdTable(db),
+                                referencedColumn: $$GoalsTableReferences
+                                    ._alcanciaIdTable(db)
+                                    .id,
+                              )
+                              as T;
+                    }
+
+                    return state;
+                  },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
         ),
       );
 }
@@ -8739,9 +9104,9 @@ typedef $$GoalsTableProcessedTableManager =
       $$GoalsTableAnnotationComposer,
       $$GoalsTableCreateCompanionBuilder,
       $$GoalsTableUpdateCompanionBuilder,
-      (Goal, BaseReferences<_$AppDatabase, $GoalsTable, Goal>),
+      (Goal, $$GoalsTableReferences),
       Goal,
-      PrefetchHooks Function()
+      PrefetchHooks Function({bool alcanciaId})
     >;
 typedef $$TagsTableCreateCompanionBuilder =
     TagsCompanion Function({

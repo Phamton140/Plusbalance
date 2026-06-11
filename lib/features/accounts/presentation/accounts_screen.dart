@@ -12,7 +12,6 @@ class AccountsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final accountsAsync = ref.watch(activeAccountsProvider);
-    final defaultIdAsync = ref.watch(defaultAccountIdProvider);
 
     return Scaffold(
       appBar: AppBar(title: const Text('Cuentas y Tarjetas')),
@@ -21,13 +20,12 @@ class AccountsScreen extends ConsumerWidget {
           if (accounts.isEmpty) {
             return const Center(child: Text('Aún no tienes cuentas registradas', style: TextStyle(color: Colors.grey)));
           }
-          final defaultId = defaultIdAsync.valueOrNull;
           return ListView.builder(
             padding: const EdgeInsets.all(16),
             itemCount: accounts.length,
             itemBuilder: (context, index) {
               final account = accounts[index];
-              return _AccountCard(account: account, isDefault: defaultId == account.id);
+              return _AccountCard(account: account, isDefault: false);
             },
           );
         },
@@ -64,113 +62,111 @@ class _AccountCard extends ConsumerWidget {
     }
 
     return Card(
-          margin: const EdgeInsets.only(bottom: 16),
-          elevation: 4,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          child: InkWell(
-            onTap: () => _showOptions(context, ref, account, isDefault),
+      margin: const EdgeInsets.only(bottom: 16),
+      elevation: 4,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: InkWell(
+        onTap: () => _showOptions(context, ref),
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(16),
-            child: Container(
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(16),
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    Color(int.parse(account.color.replaceAll('#', '0xFF'))),
-                    Color(int.parse(account.color.replaceAll('#', '0xFF'))).withValues(alpha: 0.7),
-                  ],
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: Color(int.parse(account.color.replaceAll('#', '0xFF'))).withValues(alpha: 0.4),
-                    blurRadius: 10,
-                    offset: const Offset(0, 4),
-                  )
-                ]
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                Color(int.parse(account.color.replaceAll('#', '0xFF'))),
+                Color(int.parse(account.color.replaceAll('#', '0xFF'))).withValues(alpha: 0.7),
+              ],
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Color(int.parse(account.color.replaceAll('#', '0xFF'))).withValues(alpha: 0.4),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              )
+            ]
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        account.institutionName ?? 'Banco',
-                        style: const TextStyle(color: Colors.white70, fontSize: 16, fontWeight: FontWeight.w500),
-                      ),
-                      Row(
-                        children: [
-                          if (isDefault) const Icon(Icons.star, color: Colors.amber, size: 20),
-                          const SizedBox(width: 8),
-                          const Icon(Icons.wifi_rounded, color: Colors.white70, size: 28),
-                        ],
-                      )
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  const Icon(Icons.memory, color: Colors.white54, size: 36),
-                  const SizedBox(height: 8),
                   Text(
-                    '**** **** **** ${account.id.substring(account.id.length - 4).toUpperCase()}',
-                    style: const TextStyle(color: Colors.white, fontSize: 18, fontFamily: 'monospace', letterSpacing: 2),
+                    account.institutionName ?? 'Banco',
+                    style: const TextStyle(color: Colors.white70, fontSize: 16, fontWeight: FontWeight.w500),
                   ),
-                  const SizedBox(height: 16),
                   Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            account.name.toUpperCase(),
-                            style: const TextStyle(color: Colors.white70, fontSize: 12, letterSpacing: 1),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            '\$${account.balance.toStringAsFixed(2)}',
-                            style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
-                          ),
-                        ],
-                      ),
-                      const Text(
-                        'VISA',
-                        style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w900, fontStyle: FontStyle.italic),
-                      ),
+                      if (isDefault) const Icon(Icons.star, color: Colors.amber, size: 20),
+                      const SizedBox(width: 8),
+                      const Icon(Icons.wifi_rounded, color: Colors.white70, size: 28),
                     ],
-                  ),
-                  if (_hasRecharge(account)) ...[
-                    const SizedBox(height: 12),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.15),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(Icons.autorenew, color: Colors.white, size: 14),
-                          const SizedBox(width: 6),
-                          Flexible(
-                            child: Text(
-                              _rechargeFooterText(account),
-                              style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w500),
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
+                  )
                 ],
               ),
-            ),
+              const SizedBox(height: 16),
+              const Icon(Icons.memory, color: Colors.white54, size: 36),
+              const SizedBox(height: 8),
+              Text(
+                '**** **** **** ${account.id.substring(account.id.length - 4).toUpperCase()}',
+                style: const TextStyle(color: Colors.white, fontSize: 18, fontFamily: 'monospace', letterSpacing: 2),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        account.name.toUpperCase(),
+                        style: const TextStyle(color: Colors.white70, fontSize: 12, letterSpacing: 1),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '\$${account.balance.toStringAsFixed(2)}',
+                        style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
+                      ),
+                    ],
+                  ),
+                  const Text(
+                    'VISA',
+                    style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w900, fontStyle: FontStyle.italic),
+                  ),
+                ],
+              ),
+              if (_hasRecharge(account)) ...[
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.autorenew, color: Colors.white, size: 14),
+                      const SizedBox(width: 6),
+                      Flexible(
+                        child: Text(
+                          _rechargeFooterText(account),
+                          style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w500),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ],
           ),
-        );
-      }
+        ),
+      ),
     );
   }
 
@@ -182,16 +178,13 @@ class _AccountCard extends ConsumerWidget {
   String _rechargeFooterText(Account a) {
     final freq = a.rechargeFrequency;
     final label = kRechargeFrequencyLabels[freq] ?? freq ?? '';
-    final concept =
-        a.rechargeLabel?.isNotEmpty == true ? ' · ${a.rechargeLabel}' : '';
+    final concept = a.rechargeLabel?.isNotEmpty == true ? ' · ${a.rechargeLabel}' : '';
     final isBiweekly = freq == 'biweekly';
 
     String formatSlot(DateTime? next, double? amount, String slotLabel) {
       if (next == null) return '';
       final today = DateTime.now();
-      final days = next
-          .difference(DateTime(today.year, today.month, today.day))
-          .inDays;
+      final days = next.difference(DateTime(today.year, today.month, today.day)).inDays;
       String when;
       if (days < 0) {
         when = 'vencida (${-days}d)';
@@ -210,9 +203,7 @@ class _AccountCard extends ConsumerWidget {
     }
 
     final slot1 = formatSlot(a.rechargeNextDate, a.rechargeAmount, '1ra');
-    final slot2 = isBiweekly
-        ? formatSlot(a.rechargeNextDate2, a.rechargeAmount2, '2da')
-        : '';
+    final slot2 = isBiweekly ? formatSlot(a.rechargeNextDate2, a.rechargeAmount2, '2da') : '';
 
     if (a.rechargeNextDate == null && (a.rechargeNextDate2 == null || !isBiweekly)) {
       return 'Recarga $label$concept';
@@ -220,7 +211,7 @@ class _AccountCard extends ConsumerWidget {
     return 'Recarga $label$concept $slot1 $slot2'.trim();
   }
 
-  void _showOptions(BuildContext context, WidgetRef ref, Account account, bool isDefault) {
+  void _showOptions(BuildContext context, WidgetRef ref) {
     showModalBottomSheet(
       context: context,
       builder: (context) {
@@ -241,20 +232,14 @@ class _AccountCard extends ConsumerWidget {
                 },
               ),
               ListTile(
-                leading: Icon(isEfectivo ? Icons.tune : Icons.edit,
-                    color: isEfectivo ? Colors.teal : Colors.blue),
+                leading: Icon(isEfectivo ? Icons.tune : Icons.edit, color: isEfectivo ? Colors.teal : Colors.blue),
                 title: Text(
-                    isEfectivo
-                        ? 'Ajustar saldo / recurrencia'
-                        : 'Editar Cuenta',
-                    style: TextStyle(
-                        color: isEfectivo ? Colors.teal : Colors.blue)),
+                  isEfectivo ? 'Ajustar saldo / recurrencia' : 'Editar Cuenta',
+                  style: TextStyle(color: isEfectivo ? Colors.teal : Colors.blue),
+                ),
                 onTap: () {
                   Navigator.pop(context);
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => AccountFormScreen(account: account)),
-                  );
+                  Navigator.push(context, MaterialPageRoute(builder: (_) => AccountFormScreen(account: account)));
                 },
               ),
               if (!isEfectivo && !isAlcancia)
@@ -322,10 +307,7 @@ class _AlcanciaCard extends StatelessWidget {
             gradient: LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
-              colors: [
-                Colors.amber.shade700,
-                Colors.amber.shade500,
-              ],
+              colors: [Colors.amber.shade700, Colors.amber.shade500],
             ),
             boxShadow: [
               BoxShadow(
@@ -340,11 +322,7 @@ class _AlcanciaCard extends StatelessWidget {
               Positioned(
                 right: -20,
                 bottom: -20,
-                child: Icon(
-                  Icons.savings,
-                  size: 120,
-                  color: Colors.white.withValues(alpha: 0.15),
-                ),
+                child: Icon(Icons.savings, size: 120, color: Colors.white.withValues(alpha: 0.15)),
               ),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -384,11 +362,7 @@ class _AlcanciaCard extends StatelessWidget {
                           color: Colors.white.withValues(alpha: 0.2),
                           shape: BoxShape.circle,
                         ),
-                        child: const Icon(
-                          Icons.savings,
-                          color: Colors.white,
-                          size: 32,
-                        ),
+                        child: const Icon(Icons.savings, color: Colors.white, size: 32),
                       ),
                     ],
                   ),
@@ -423,7 +397,3 @@ class _AlcanciaCard extends StatelessWidget {
     );
   }
 }
-
-final defaultAccountIdProvider = StreamProvider<String?>((ref) {
-  return ref.watch(settingsDaoProvider).watchSetting('default_account_id');
-});
