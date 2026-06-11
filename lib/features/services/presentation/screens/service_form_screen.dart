@@ -278,14 +278,16 @@ class _ServiceFormScreenState extends ConsumerState<ServiceFormScreen> {
                 ),
                 trailing: const Icon(Icons.calendar_today),
                 onTap: () async {
-                  final tomorrow = DateTime.now().add(const Duration(days: 1));
+                  final now = DateTime.now();
+                  final tomorrow = DateTime(now.year, now.month, now.day + 1);
+                  final initial = _selectedDate != null && _selectedDate!.isAfter(tomorrow)
+                      ? _selectedDate!
+                      : tomorrow;
                   final date = await showDatePicker(
                     context: context,
-                    initialDate: _selectedDate != null && _selectedDate!.isAfter(tomorrow)
-                        ? _selectedDate!
-                        : tomorrow,
+                    initialDate: initial,
                     firstDate: tomorrow,
-                    lastDate: DateTime.now().add(const Duration(days: 365 * 5)),
+                    lastDate: now.add(const Duration(days: 365 * 5)),
                     helpText: 'Selecciona una fecha futura',
                     locale: const Locale('es'),
                   );
@@ -305,12 +307,19 @@ class _ServiceFormScreenState extends ConsumerState<ServiceFormScreen> {
                   ),
                   trailing: const Icon(Icons.event_busy),
                   onTap: () async {
-                    final minDate = _selectedDate ?? DateTime.now().add(const Duration(days: 1));
+                    final now = DateTime.now();
+                    final tomorrow = DateTime(now.year, now.month, now.day + 1);
+                    final minDate = _selectedDate != null
+                        ? (_selectedDate!.isAfter(tomorrow) ? _selectedDate! : tomorrow)
+                        : tomorrow;
+                    final initial = _selectedEndDate != null
+                        ? (_selectedEndDate!.isAfter(minDate) ? _selectedEndDate! : minDate)
+                        : minDate;
                     final date = await showDatePicker(
                       context: context,
-                      initialDate: _selectedEndDate ?? minDate,
+                      initialDate: initial,
                       firstDate: minDate,
-                      lastDate: DateTime.now().add(const Duration(days: 365 * 10)),
+                      lastDate: now.add(const Duration(days: 365 * 10)),
                       helpText: 'Selecciona fecha de finalización',
                       locale: const Locale('es'),
                     );

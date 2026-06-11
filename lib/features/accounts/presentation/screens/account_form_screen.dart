@@ -395,25 +395,24 @@ class _AccountFormScreenState extends ConsumerState<AccountFormScreen> {
                       ),
                     ),
                     onTap: () async {
-                      final tomorrow = DateTime.now().add(const Duration(days: 1));
+                      final now = DateTime.now();
+                      final tomorrow = DateTime(now.year, now.month, now.day + 1);
+                      final initial = _rechargeNextDate != null && _rechargeNextDate!.isAfter(tomorrow)
+                          ? _rechargeNextDate!
+                          : tomorrow;
                       final picked = await showDatePicker(
                         context: context,
-                        initialDate: _rechargeNextDate != null && _rechargeNextDate!.isAfter(tomorrow)
-                            ? _rechargeNextDate!
-                            : tomorrow,
+                        initialDate: initial,
                         firstDate: tomorrow,
-                        lastDate: DateTime.now()
-                            .add(const Duration(days: 365 * 5)),
+                        lastDate: now.add(const Duration(days: 365 * 5)),
                         helpText: 'Selecciona una fecha futura',
                         locale: const Locale('es'),
                       );
                       if (picked != null) {
                         setState(() {
                           _rechargeNextDate = picked;
-                          // Si aún no se ha elegido la 2da, sugerir +14d.
                           if (_rechargeNextDate2 == null) {
-                            _rechargeNextDate2 =
-                                picked.add(const Duration(days: 14));
+                            _rechargeNextDate2 = DateTime(picked.year, picked.month, picked.day + 14);
                           }
                         });
                       }
@@ -435,16 +434,16 @@ class _AccountFormScreenState extends ConsumerState<AccountFormScreen> {
                       ),
                     ),
                     onTap: () async {
-                      final tomorrow = DateTime.now().add(const Duration(days: 1));
-                      final defaultInit = _rechargeNextDate2 ??
-                          (_rechargeNextDate ?? DateTime.now())
-                              .add(const Duration(days: 14));
+                      final now = DateTime.now();
+                      final tomorrow = DateTime(now.year, now.month, now.day + 1);
+                      final baseDate = _rechargeNextDate ?? now;
+                      final defaultInit = _rechargeNextDate2 ?? DateTime(baseDate.year, baseDate.month, baseDate.day + 14);
+                      final initial = defaultInit.isAfter(tomorrow) ? defaultInit : tomorrow;
                       final picked = await showDatePicker(
                         context: context,
-                        initialDate: defaultInit.isAfter(tomorrow) ? defaultInit : tomorrow,
+                        initialDate: initial,
                         firstDate: tomorrow,
-                        lastDate: DateTime.now()
-                            .add(const Duration(days: 365 * 5)),
+                        lastDate: now.add(const Duration(days: 365 * 5)),
                         helpText: 'Selecciona una fecha futura',
                         locale: const Locale('es'),
                       );
@@ -500,15 +499,16 @@ class _AccountFormScreenState extends ConsumerState<AccountFormScreen> {
                     ),
                     trailing: const Icon(Icons.calendar_today),
                     onTap: () async {
-                      final tomorrow = DateTime.now().add(const Duration(days: 1));
+                      final now = DateTime.now();
+                      final tomorrow = DateTime(now.year, now.month, now.day + 1);
+                      final initial = _rechargeNextDate != null && _rechargeNextDate!.isAfter(tomorrow)
+                          ? _rechargeNextDate!
+                          : tomorrow;
                       final picked = await showDatePicker(
                         context: context,
-                        initialDate: _rechargeNextDate != null && _rechargeNextDate!.isAfter(tomorrow)
-                            ? _rechargeNextDate!
-                            : tomorrow,
+                        initialDate: initial,
                         firstDate: tomorrow,
-                        lastDate:
-                            DateTime.now().add(const Duration(days: 365 * 5)),
+                        lastDate: now.add(const Duration(days: 365 * 5)),
                         helpText: 'Selecciona una fecha futura',
                         locale: const Locale('es'),
                       );

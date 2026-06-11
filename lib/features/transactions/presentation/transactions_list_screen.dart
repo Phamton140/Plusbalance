@@ -42,6 +42,7 @@ class TransactionsListScreen extends ConsumerWidget {
                 helpText: 'Rango del Reporte (Deja vacío para TODO)',
                 cancelText: 'TODO EL HISTORIAL',
                 confirmText: 'GENERAR',
+                locale: const Locale('es'),
               );
 
               try {

@@ -102,11 +102,16 @@ class _GoalFormScreenState extends ConsumerState<GoalFormScreen> {
                 ),
                 trailing: const Icon(Icons.calendar_today),
                 onTap: () async {
+                  final now = DateTime.now();
+                  final today = DateTime(now.year, now.month, now.day);
+                  final initial = _selectedDate != null && !_selectedDate!.isBefore(today)
+                      ? _selectedDate!
+                      : today;
                   final date = await showDatePicker(
                     context: context,
-                    initialDate: _selectedDate ?? DateTime.now(),
-                    firstDate: DateTime.now(),
-                    lastDate: DateTime.now().add(const Duration(days: 365 * 10)),
+                    initialDate: initial,
+                    firstDate: today,
+                    lastDate: now.add(const Duration(days: 365 * 10)),
                     locale: const Locale('es'),
                   );
                   if (date != null) {
