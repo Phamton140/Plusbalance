@@ -186,6 +186,7 @@ const Divider(height: 1),
                     );
 
                     if (confirm == true && context.mounted) {
+                      ref.read(authControllerProvider.notifier).lock();
                       Navigator.pushAndRemoveUntil(
                         context,
                         MaterialPageRoute(builder: (_) => const PinScreen()),
