@@ -291,6 +291,26 @@ class _AccountFormScreenState extends ConsumerState<AccountFormScreen> {
                         colorHex: '#8E24AA',
                         isSelected: _selectedColor == '#8E24AA',
                         onTap: () => setState(() => _selectedColor = '#8E24AA')),
+                    _ColorPickerOption(
+                        colorHex: '#6B7280',
+                        isSelected: _selectedColor == '#6B7280',
+                        onTap: () => setState(() => _selectedColor = '#6B7280')),
+                    _ColorPickerOption(
+                        colorHex: '#78716C',
+                        isSelected: _selectedColor == '#78716C',
+                        onTap: () => setState(() => _selectedColor = '#78716C')),
+                    _ColorPickerOption(
+                        colorHex: '#7B8794',
+                        isSelected: _selectedColor == '#7B8794',
+                        onTap: () => setState(() => _selectedColor = '#7B8794')),
+                    _ColorPickerOption(
+                        colorHex: '#6B8E7B',
+                        isSelected: _selectedColor == '#6B8E7B',
+                        onTap: () => setState(() => _selectedColor = '#6B8E7B')),
+                    _ColorPickerOption(
+                        colorHex: '#8B7355',
+                        isSelected: _selectedColor == '#8B7355',
+                        onTap: () => setState(() => _selectedColor = '#8B7355')),
                   ],
                 ),
               ],
