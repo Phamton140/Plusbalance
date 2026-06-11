@@ -1,3 +1,5 @@
+import 'dart:io';
+import 'package:flutter/services.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
@@ -25,6 +27,15 @@ class PdfService {
     String? userName,
   }) async {
     final pdf = pw.Document();
+
+    // Cargar imagen del icono
+    pw.ImageProvider? logoImage;
+    try {
+      final iconBytes = await rootBundle.load('assets/app_icon.png');
+      logoImage = pw.MemoryImage(iconBytes.buffer.asUint8List());
+    } catch (_) {
+      logoImage = null;
+    }
 
     // Cargamos las fuentes. Si no hay red, caemos a las fuentes por defecto
     // del paquete `pdf` (Helvetica/Times) para no romper la generación.
@@ -123,35 +134,40 @@ class PdfService {
           return pw.Column(
             crossAxisAlignment: pw.CrossAxisAlignment.start,
             children: [
-              // Logo de la app dibujado con pw (no usa imágenes)
-              pw.Container(
-                padding: const pw.EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                decoration: pw.BoxDecoration(
-                  color: const PdfColor.fromInt(0xFF6C63FF),
-                  borderRadius: const pw.BorderRadius.all(pw.Radius.circular(8)),
-                ),
-                child: pw.Row(
-                  mainAxisSize: pw.MainAxisSize.min,
-                  children: [
-                    pw.Text(
-                      '+',
-                      style: pw.TextStyle(
+              // Logo de la app con icono e imagen
+              pw.Row(
+                mainAxisSize: pw.MainAxisSize.min,
+                crossAxisAlignment: pw.CrossAxisAlignment.center,
+                children: [
+                  if (logoImage != null)
+                    pw.Container(
+                      width: 40,
+                      height: 40,
+                      child: pw.Image(logoImage, fit: pw.BoxFit.cover),
+                    )
+                  else
+                    pw.Container(
+                      padding: const pw.EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: pw.BoxDecoration(
+                        color: const PdfColor.fromInt(0xFF6C63FF),
+                        borderRadius: const pw.BorderRadius.all(pw.Radius.circular(6)),
+                      ),
+                      child: pw.Text('+', style: pw.TextStyle(
                         color: const PdfColor.fromInt(0xFF00D4AA),
-                        fontSize: 20,
+                        fontSize: 16,
                         fontWeight: pw.FontWeight.bold,
-                      ),
+                      )),
                     ),
-                    pw.SizedBox(width: 4),
-                    pw.Text(
-                      'Balance',
-                      style: pw.TextStyle(
-                        color: PdfColors.white,
-                        fontSize: 18,
-                        fontWeight: pw.FontWeight.bold,
-                      ),
+                  pw.SizedBox(width: 8),
+                  pw.Text(
+                    '+Balance',
+                    style: pw.TextStyle(
+                      color: const PdfColor.fromInt(0xFF6C63FF),
+                      fontSize: 20,
+                      fontWeight: pw.FontWeight.bold,
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
               pw.SizedBox(height: 12),
               pw.Row(
