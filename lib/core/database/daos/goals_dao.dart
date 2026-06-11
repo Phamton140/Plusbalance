@@ -17,69 +17,120 @@ class GoalsDao extends DatabaseAccessor<AppDatabase> with _$GoalsDaoMixin {
     return into(goals).insert(goal);
   }
 
-  Future<bool> updateGoalAmount(String goalId, double addAmount) async {
-    final goal = await (select(goals)..where((g) => g.id.equals(goalId))).getSingle();
-    return update(goals).replace(
-      goal.copyWith(currentAmount: goal.currentAmount + addAmount)
-    );
-  }
-
   Future<bool> updateGoal(Insertable<Goal> goal) {
     return update(goals).replace(goal);
   }
 
-  /// Realiza un abono a una meta: registra una transacción tipo "expense"
-  /// en la categoría por defecto de metas, debita el monto de la cuenta
-  /// seleccionada y suma al progreso de la meta, todo en una sola
-  /// transacción de base de datos.
-  ///
-  /// Lanza [StateError] si la cuenta no tiene saldo suficiente.
-  Future<void> addFundsToGoal({
-    required String goalId,
-    required String accountId,
+  Future<Account> getAlcanciaAccount() async {
+    return (select(accounts)..where((a) => a.id.equals(alcanciaDefaultAccountId)))
+        .getSingle();
+  }
+
+  Stream<Account> watchAlcanciaBalance() {
+    return (select(accounts)..where((a) => a.id.equals(alcanciaDefaultAccountId)))
+        .watchSingle();
+  }
+
+  Future<double> getAlcanciaBalance() async {
+    final alcancia = await getAlcanciaAccount();
+    return alcancia.balance;
+  }
+
+  Stream<List<Goal>> watchCompletableGoals() {
+    return watchActiveGoals().map((goals) {
+      return goals.where((g) => g.targetAmount <= g.currentAmount).toList();
+    });
+  }
+
+  Future<bool> isGoalCompletable(String goalId) async {
+    final goal = await (select(goals)..where((g) => g.id.equals(goalId))).getSingle();
+    final balance = await getAlcanciaBalance();
+    return balance >= goal.targetAmount;
+  }
+
+  Future<void> addFundsToAlcancia({
+    required String fromAccountId,
     required double amount,
   }) async {
     await db.transaction(() async {
-      final account = await (select(accounts)
-            ..where((a) => a.id.equals(accountId)))
+      final fromAccount = await (select(accounts)
+            ..where((a) => a.id.equals(fromAccountId)))
           .getSingle();
 
-      if (account.balance < amount) {
-        throw StateError('Saldo insuficiente en ${account.name}');
+      if (fromAccount.balance < amount) {
+        throw StateError('Saldo insuficiente en ${fromAccount.name}');
       }
 
-      final goal = await (select(goals)..where((g) => g.id.equals(goalId)))
-          .getSingle();
+      final alcancia = await getAlcanciaAccount();
 
-      // 1. Insertar transacción de gasto vinculada a la categoría por defecto
       await into(transactions).insert(
         TransactionsCompanion.insert(
           id: const Uuid().v4(),
           amount: amount,
           date: DateTime.now(),
-          type: 'expense',
-          accountId: accountId,
-          categoryId: const Value(goalDefaultCategoryId),
-          description: Value('Abono a meta: ${goal.name}'),
-          sourceType: const Value('goal'),
+          type: 'transfer',
+          accountId: fromAccountId,
+          categoryId: const Value(transferenciaDefaultCategoryId),
+          description: const Value('Transferencia a Alcancía'),
+          sourceType: const Value('transfer'),
         ),
       );
 
-      // 2. Debitar el saldo de la cuenta
-      await (update(accounts)..where((a) => a.id.equals(accountId))).write(
-        AccountsCompanion(balance: Value(account.balance - amount)),
+      await (update(accounts)..where((a) => a.id.equals(fromAccountId))).write(
+        AccountsCompanion(balance: Value(fromAccount.balance - amount)),
       );
 
-      // 3. Sumar al progreso de la meta
-      await update(goals).replace(
-        goal.copyWith(currentAmount: goal.currentAmount + amount),
+      await (update(accounts)..where((a) => a.id.equals(alcanciaDefaultAccountId))).write(
+        AccountsCompanion(balance: Value(alcancia.balance + amount)),
       );
     });
   }
 
-  /// Revierte un abono a meta: devuelve el monto a la cuenta, resta del
-  /// progreso de la meta y elimina la transacción vinculada. Lanza
-  /// [StateError] si la cuenta no tiene saldo suficiente.
+  Future<void> completeGoal({
+    required String goalId,
+  }) async {
+    await db.transaction(() async {
+      final goal = await (select(goals)..where((g) => g.id.equals(goalId)))
+          .getSingle();
+
+      if (goal.status != 'active') {
+        throw StateError('Esta meta ya no está activa');
+      }
+
+      final balance = await getAlcanciaBalance();
+      if (balance < goal.targetAmount) {
+        throw StateError('Saldo insuficiente en Alcancía');
+      }
+
+      final alcancia = await getAlcanciaAccount();
+
+      await into(transactions).insert(
+        TransactionsCompanion.insert(
+          id: const Uuid().v4(),
+          amount: goal.targetAmount,
+          date: DateTime.now(),
+          type: 'expense',
+          accountId: alcanciaDefaultAccountId,
+          categoryId: const Value(goalDefaultCategoryId),
+          description: Value('Meta completada: ${goal.name}'),
+          sourceType: const Value('goal'),
+        ),
+      );
+
+      await (update(accounts)..where((a) => a.id.equals(alcanciaDefaultAccountId))).write(
+        AccountsCompanion(balance: Value(alcancia.balance - goal.targetAmount)),
+      );
+
+      await update(goals).replace(
+        goal.copyWith(
+          currentAmount: goal.targetAmount,
+          status: 'completed',
+          updatedAt: DateTime.now(),
+        ),
+      );
+    });
+  }
+
   Future<void> reverseGoalContribution({
     required String transactionId,
   }) async {
@@ -93,21 +144,11 @@ class GoalsDao extends DatabaseAccessor<AppDatabase> with _$GoalsDaoMixin {
       final account = await (select(accounts)
             ..where((a) => a.id.equals(tx.accountId)))
           .getSingle();
-      final goalName = (tx.description ?? '')
-          .replaceFirst('Abono a meta: ', '');
-      final goal = await (select(goals)
-            ..where((g) => g.name.equals(goalName)))
-            .getSingleOrNull();
 
-      // Devolver al saldo y restar del progreso.
       await (update(accounts)..where((a) => a.id.equals(account.id))).write(
         AccountsCompanion(balance: Value(account.balance + tx.amount)),
       );
-      if (goal != null) {
-        final newAmount = (goal.currentAmount - tx.amount).clamp(0.0, double.infinity);
-        await update(goals).replace(goal.copyWith(currentAmount: newAmount));
-      }
-      // Borrar la transacción.
+
       await (delete(transactions)..where((t) => t.id.equals(tx.id))).go();
     });
   }
