@@ -43,8 +43,8 @@ class GoalsDao extends DatabaseAccessor<AppDatabase> with _$GoalsDaoMixin {
   Stream<List<Goal>> watchCompletableGoals() {
     return watchAlcanciaBalance().asyncMap((alcancia) async {
       final balance = alcancia.balance;
-      final goals = await (select(goals)..where((g) => g.status.equals('active'))).get();
-      return goals.where((g) => g.targetAmount <= balance).toList();
+      final activeGoals = await (select(goals)..where((g) => g.status.equals('active'))).get();
+      return activeGoals.where((g) => g.targetAmount <= balance).toList();
     });
   }
 

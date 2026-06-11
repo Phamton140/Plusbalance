@@ -5,6 +5,7 @@ import '../../../core/theme/theme_provider.dart';
 import '../../../core/providers/database_provider.dart';
 import '../../../core/database/app_database.dart';
 import '../../auth/presentation/pin_screen.dart';
+import '../../auth/providers/auth_providers.dart';
 import 'screens/edit_name_screen.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
