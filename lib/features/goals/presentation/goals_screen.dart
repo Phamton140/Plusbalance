@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:uuid/uuid.dart';
-import 'package:drift/drift.dart' as drift;
 import '../../../core/database/app_database.dart';
 import '../../../core/providers/database_provider.dart';
 import 'screens/goal_form_screen.dart';
@@ -13,6 +11,7 @@ class GoalsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final goalsStream = ref.watch(activeGoalsProvider);
+    final alcanciaStream = ref.watch(goalsDaoProvider).watchAlcanciaBalance();
 
     return Scaffold(
       appBar: AppBar(title: const Text('Metas de Ahorro')),
@@ -21,107 +20,69 @@ class GoalsScreen extends ConsumerWidget {
           if (goals.isEmpty) {
             return const Center(child: Text('No hay metas activas.', style: TextStyle(color: Colors.white54)));
           }
-          return ListView.builder(
-            padding: const EdgeInsets.all(16),
-            itemCount: goals.length,
-            itemBuilder: (context, index) {
-              final goal = goals[index];
-              final progress = goal.currentAmount / goal.targetAmount;
-              return Dismissible(
-                key: Key(goal.id),
-                direction: DismissDirection.endToStart,
-                background: Container(
-                  alignment: Alignment.centerRight,
-                  padding: const EdgeInsets.only(right: 20),
-                  color: Colors.redAccent,
-                  child: const Icon(Icons.delete, color: Colors.white),
-                ),
-                confirmDismiss: (direction) async {
-                  return await showDialog(
-                    context: context,
-                    builder: (BuildContext context) {
-                      return AlertDialog(
-                        title: const Text("Eliminar Meta"),
-                        content: const Text("¿Estás seguro de que quieres eliminar esta meta? Todo el progreso registrado desaparecerá."),
-                        actions: [
-                          TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text("Cancelar")),
-                          ElevatedButton(
-                            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-                            onPressed: () => Navigator.of(context).pop(true), 
-                            child: const Text("Eliminar")
-                          ),
-                        ],
-                      );
-                    },
-                  );
-                },
-                onDismissed: (direction) async {
-                  await (ref.read(databaseProvider).delete(ref.read(databaseProvider).goals)
-                    ..where((g) => g.id.equals(goal.id)))
-                    .go();
-                },
-                child: Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(goal.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18), overflow: TextOverflow.ellipsis),
-                                  if (goal.targetDate != null)
-                                    Padding(
-                                      padding: const EdgeInsets.only(top: 4),
-                                      child: Text('Límite: ${goal.targetDate!.day}/${goal.targetDate!.month}/${goal.targetDate!.year}', style: const TextStyle(fontSize: 12, color: Colors.grey)),
-                                    ),
-                                ],
-                              ),
-                            ),
-                            IconButton(
-                              icon: const Icon(Icons.add_circle_outline, color: Colors.green),
-                              tooltip: 'Abonar a la meta',
-                              onPressed: () {
-                                Navigator.push(context, MaterialPageRoute(builder: (_) => GoalAddFundsScreen(goal: goal)));
-                              },
-                            ),
-                            IconButton(
-                              icon: const Icon(Icons.edit, color: Colors.blue),
-                              tooltip: 'Editar meta',
-                              onPressed: () {
-                                Navigator.push(context, MaterialPageRoute(builder: (_) => GoalFormScreen(goal: goal)));
-                              },
-                            ),
-                          ],
+          return Column(
+            children: [
+              alcanciaStream.when(
+                data: (alcancia) {
+                  return Container(
+                    margin: const EdgeInsets.all(16),
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [Colors.amber.shade700, Colors.amber.shade500],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.amber.withValues(alpha: 0.3),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
                         ),
-                        const SizedBox(height: 12),
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(8),
-                          child: LinearProgressIndicator(
-                            value: progress.clamp(0.0, 1.0),
-                            minHeight: 10,
-                            backgroundColor: Colors.grey.shade300,
-                            valueColor: AlwaysStoppedAnimation<Color>(
-                              Color.lerp(
-                                Colors.grey.shade500,
-                                Colors.green,
-                                progress.clamp(0.0, 1.0),
-                              )!,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text('\$${goal.currentAmount.toStringAsFixed(2)} / \$${goal.targetAmount.toStringAsFixed(2)}', style: const TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)),
                       ],
                     ),
-                  ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.savings, color: Colors.white, size: 48),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text('En Alcancía', style: TextStyle(color: Colors.white70, fontSize: 14)),
+                              Text(
+                                '\$${alcancia.balance.toStringAsFixed(2)}',
+                                style: const TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.bold),
+                              ),
+                            ],
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.add_circle, color: Colors.white),
+                          tooltip: 'Enviar a Alcancía',
+                          onPressed: () {
+                            Navigator.push(context, MaterialPageRoute(builder: (_) => const GoalAddFundsScreen()));
+                          },
+                        ),
+                      ],
+                    ),
+                  );
+                },
+                loading: () => const SizedBox(),
+                error: (_, __) => const SizedBox(),
+              ),
+              Expanded(
+                child: ListView.builder(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  itemCount: goals.length,
+                  itemBuilder: (context, index) {
+                    final goal = goals[index];
+                    return _GoalCard(goal: goal);
+                  },
                 ),
-              );
-            },
+              ),
+            ],
           );
         },
         loading: () => const Center(child: CircularProgressIndicator()),
@@ -138,6 +99,165 @@ class GoalsScreen extends ConsumerWidget {
         label: const Text('Nueva Meta'),
       ),
     );
+  }
+}
+
+class _GoalCard extends ConsumerWidget {
+  final Goal goal;
+
+  const _GoalCard({required this.goal});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return StreamBuilder<double>(
+      stream: ref.watch(goalsDaoProvider).watchAlcanciaBalance().map((a) => a.balance),
+      builder: (context, snapshot) {
+        final alcanciaBalance = snapshot.data ?? 0.0;
+        final effectiveAmount = alcanciaBalance.clamp(0.0, goal.targetAmount);
+        final progress = goal.targetAmount > 0 ? effectiveAmount / goal.targetAmount : 0.0;
+        final isCompletable = alcanciaBalance >= goal.targetAmount;
+
+        return Dismissible(
+          key: Key(goal.id),
+          direction: DismissDirection.endToStart,
+          background: Container(
+            alignment: Alignment.centerRight,
+            padding: const EdgeInsets.only(right: 20),
+            color: Colors.redAccent,
+            child: const Icon(Icons.delete, color: Colors.white),
+          ),
+          confirmDismiss: (direction) async {
+            return await showDialog(
+              context: context,
+              builder: (BuildContext context) {
+                return AlertDialog(
+                  title: const Text("Eliminar Meta"),
+                  content: const Text("¿Estás seguro de que quieres eliminar esta meta?"),
+                  actions: [
+                    TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text("Cancelar")),
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                      onPressed: () => Navigator.of(context).pop(true),
+                      child: const Text("Eliminar")
+                    ),
+                  ],
+                );
+              },
+            );
+          },
+          onDismissed: (direction) async {
+            await (ref.read(databaseProvider).delete(ref.read(databaseProvider).goals)
+              ..where((g) => g.id.equals(goal.id)))
+              .go();
+          },
+          child: Card(
+            margin: const EdgeInsets.only(bottom: 12),
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(goal.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18), overflow: TextOverflow.ellipsis),
+                            if (goal.targetDate != null)
+                              Padding(
+                                padding: const EdgeInsets.only(top: 4),
+                                child: Text('Límite: ${goal.targetDate!.day}/${goal.targetDate!.month}/${goal.targetDate!.year}', style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                              ),
+                          ],
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.edit, color: Colors.blue),
+                        tooltip: 'Editar meta',
+                        onPressed: () {
+                          Navigator.push(context, MaterialPageRoute(builder: (_) => GoalFormScreen(goal: goal)));
+                        },
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: LinearProgressIndicator(
+                      value: progress.clamp(0.0, 1.0),
+                      minHeight: 10,
+                      backgroundColor: Colors.grey.shade300,
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                        isCompletable ? Colors.green : Color.lerp(Colors.grey.shade500, Colors.green, progress.clamp(0.0, 1.0))!,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text('\$${effectiveAmount.toStringAsFixed(2)} / \$${goal.targetAmount.toStringAsFixed(2)}', style: const TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)),
+                      if (isCompletable)
+                        ElevatedButton.icon(
+                          onPressed: () => _completeGoal(context, ref),
+                          icon: const Icon(Icons.check_circle, size: 18),
+                          label: const Text('Completar'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.green,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          ),
+                        ),
+                    ],
+                  ),
+                  if (isCompletable)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8),
+                      child: Text('¡Ya puedes completar esta meta!', style: TextStyle(color: Colors.green.shade700, fontSize: 12, fontWeight: FontWeight.bold)),
+                    ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _completeGoal(BuildContext context, WidgetRef ref) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Completar "${goal.name}"?'),
+        content: Text('Se debitara \$${goal.targetAmount.toStringAsFixed(2)} de la Alcancía y se registrara como un gasto.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancelar')),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Completar')
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
+    try {
+      await ref.read(goalsDaoProvider).completeGoal(goalId: goal.id);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('¡Meta "${goal.name}" completada!')),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e is StateError ? e.message : 'Error al completar meta')),
+        );
+      }
+    }
   }
 }
 
