@@ -23,6 +23,7 @@ class _ServiceFormScreenState extends ConsumerState<ServiceFormScreen> {
   late String _selectedLabel;
   late bool _autoPay;
   DateTime? _selectedDate;
+  DateTime? _selectedEndDate;
   String? _selectedCategoryId;
   String? _selectedAccountId;
   
@@ -50,6 +51,7 @@ class _ServiceFormScreenState extends ConsumerState<ServiceFormScreen> {
 
     _autoPay = widget.service?.autoGenerateTransaction ?? true;
     _selectedDate = widget.service?.nextDate;
+    _selectedEndDate = widget.service?.endDate;
     _selectedCategoryId = widget.service?.categoryId;
     _selectedAccountId = widget.service?.accountId;
 
@@ -109,6 +111,7 @@ class _ServiceFormScreenState extends ConsumerState<ServiceFormScreen> {
           label: drift.Value(_selectedLabel),
           frequency: finalFrequency,
           nextDate: _selectedDate!,
+          endDate: drift.Value(_selectedEndDate),
           accountId: drift.Value(_selectedAccountId),
           categoryId: drift.Value(_selectedCategoryId),
           autoGenerateTransaction: drift.Value(_autoPay),
@@ -123,6 +126,7 @@ class _ServiceFormScreenState extends ConsumerState<ServiceFormScreen> {
           label: _selectedLabel,
           frequency: finalFrequency,
           nextDate: _selectedDate!,
+          endDate: drift.Value(_selectedEndDate),
           accountId: drift.Value(_selectedAccountId),
           categoryId: drift.Value(_selectedCategoryId),
           autoGenerateTransaction: _autoPay,
@@ -289,6 +293,37 @@ class _ServiceFormScreenState extends ConsumerState<ServiceFormScreen> {
                   }
                 },
               ),
+              if (_selectedFrequency != 'once') ...[
+                const SizedBox(height: 16),
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: const Text('Fecha Fin de Recurrencia (Opcional)', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
+                  subtitle: Text(
+                    _selectedEndDate == null ? 'Sin fecha límite' : '${_selectedEndDate!.day}/${_selectedEndDate!.month}/${_selectedEndDate!.year}',
+                    style: TextStyle(color: _selectedEndDate == null ? Colors.grey : Theme.of(context).colorScheme.primary),
+                  ),
+                  trailing: const Icon(Icons.event_busy),
+                  onTap: () async {
+                    final minDate = _selectedDate ?? DateTime.now().add(const Duration(days: 1));
+                    final date = await showDatePicker(
+                      context: context,
+                      initialDate: _selectedEndDate ?? minDate,
+                      firstDate: minDate,
+                      lastDate: DateTime.now().add(const Duration(days: 365 * 10)),
+                      helpText: 'Selecciona fecha de finalización',
+                    );
+                    if (date != null) {
+                      setState(() => _selectedEndDate = date);
+                    }
+                  },
+                ),
+                if (_selectedEndDate != null)
+                  TextButton.icon(
+                    onPressed: () => setState(() => _selectedEndDate = null),
+                    icon: const Icon(Icons.clear, size: 16, color: Colors.red),
+                    label: const Text('Quitar fecha fin', style: TextStyle(color: Colors.red)),
+                  ),
+              ],
               const SizedBox(height: 16),
               SwitchListTile(
                 contentPadding: EdgeInsets.zero,
@@ -323,5 +358,7 @@ final _activeAccountsProvider = StreamProvider((ref) {
 });
 
 final _categoriesProvider = StreamProvider((ref) {
-  return ref.watch(categoriesDaoProvider).watchAllCategories();
+  return ref.watch(categoriesDaoProvider).watchAllCategories().map((cats) => 
+    cats.where((c) => c.id != goalDefaultCategoryId).toList()
+  );
 });

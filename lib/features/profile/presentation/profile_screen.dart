@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/theme_provider.dart';
 import '../../../core/providers/database_provider.dart';
+import '../../../core/database/app_database.dart';
 import '../../auth/presentation/pin_screen.dart';
 import 'screens/edit_name_screen.dart';
 
@@ -129,13 +130,13 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 ListTile(
                   leading: const Icon(Icons.delete_forever, color: Colors.red),
                   title: const Text('Restablecer Datos', style: TextStyle(color: Colors.red)),
-                  subtitle: const Text('Borra todo el historial y cuentas', style: TextStyle(color: Colors.redAccent, fontSize: 12)),
+                  subtitle: const Text('Borra historial, servicios, metas y cuentas personalizadas', style: TextStyle(color: Colors.redAccent, fontSize: 12)),
                   onTap: () async {
                     final confirm = await showDialog<bool>(
                       context: context,
                       builder: (context) => AlertDialog(
                         title: const Text('⚠️ Peligro'),
-                        content: const Text('¿Estás 100% seguro? Esta acción borrará todas tus cuentas, servicios, transacciones y metas. No se puede deshacer.'),
+                        content: const Text('¿Estás 100% seguro? Esta acción borrará tus transacciones, servicios, metas y cuentas personalizadas. La cuenta "Efectivo" y las categorías por defecto se conservarán. No se puede deshacer.'),
                         actions: [
                           TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancelar')),
                           ElevatedButton(
@@ -147,16 +148,17 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       )
                     );
                     
-                    if (confirm == true) {
-                      final db = ref.read(databaseProvider);
-                      await db.transaction(() async {
-                        await db.delete(db.transactions).go();
-                        await db.delete(db.services).go();
-                        await db.delete(db.goals).go();
-                        await db.delete(db.accounts).go();
-                      });
+                      if (confirm == true) {
+                        final db = ref.read(databaseProvider);
+                        await db.transaction(() async {
+                          await db.delete(db.transactions).go();
+                          await db.delete(db.services).go();
+                          await db.delete(db.goals).go();
+                          await (db.delete(db.accounts)..where((a) => a.id.isNotIn([efectivoDefaultAccountId]))).go();
+                          await (db.delete(db.categories)..where((c) => c.id.isNotIn(defaultCategoryIds))).go();
+                        });
                       if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Todos los datos fueron borrados exitosamente.')));
+                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Datos restablecidos. Cuenta "Efectivo" y categorías por defecto conservadas.')));
                         context.go('/');
                       }
                     }

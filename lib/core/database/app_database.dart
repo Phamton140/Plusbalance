@@ -17,9 +17,26 @@ const String goalDefaultCategoryColor = '#00D4AA';
 const String efectivoDefaultAccountId = 'efectivo-default';
 const String efectivoDefaultColor = '#9E9E9E';
 
+const String alcanciaDefaultAccountId = 'alcancia-default';
+const String alcanciaDefaultColor = '#FFD700';
+
 const String transferenciaDefaultCategoryId = 'default-cat-transferencia';
 const String transferenciaDefaultCategoryName = 'Transferencia';
 const String transferenciaDefaultColor = '#FB8C00';
+
+const List<String> defaultCategoryIds = [
+  'default-cat-hogar',
+  'default-cat-alimentos',
+  'default-cat-salud',
+  'default-cat-gym',
+  'default-cat-transporte',
+  'default-cat-viajes',
+  'default-cat-compras',
+  'default-cat-comunicacion',
+  'default-cat-entretenimiento',
+  goalDefaultCategoryId,
+  transferenciaDefaultCategoryId,
+];
 
 class _DefaultCategory {
   final String id;
@@ -37,6 +54,8 @@ const List<_DefaultCategory> _defaultCategories = [
   _DefaultCategory('default-cat-transporte', 'Transporte', Icons.directions_bus, '#FF6B6B'),
   _DefaultCategory('default-cat-viajes', 'Viajes', Icons.flight, '#00BCD4'),
   _DefaultCategory('default-cat-compras', 'Compras', Icons.shopping_cart, '#5E35B1'),
+  _DefaultCategory('default-cat-comunicacion', 'Comunicacion', Icons.phone, '#03A9F4'),
+  _DefaultCategory('default-cat-entretenimiento', 'Entretenimiento', Icons.theater_comedy, '#FF5722'),
   _DefaultCategory(goalDefaultCategoryId, goalDefaultCategoryName, Icons.savings, goalDefaultCategoryColor),
   _DefaultCategory(transferenciaDefaultCategoryId, transferenciaDefaultCategoryName, Icons.sync_alt, transferenciaDefaultColor),
 ];
@@ -56,7 +75,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 9;
+  int get schemaVersion => 10;
 
   @override
   MigrationStrategy get migration {
@@ -69,6 +88,13 @@ class AppDatabase extends _$AppDatabase {
           institutionName: const Value('Efectivo'),
           type: 'cash',
           color: const Value(efectivoDefaultColor),
+        ));
+        await into(accounts).insert(AccountsCompanion.insert(
+          id: alcanciaDefaultAccountId,
+          name: 'Alcancía',
+          institutionName: const Value('Alcancía'),
+          type: 'wallet',
+          color: const Value(alcanciaDefaultColor),
         ));
         await _ensureDefaultCategories();
       },
@@ -185,6 +211,25 @@ class AppDatabase extends _$AppDatabase {
             await (update(transactions)..where((t) => t.id.equals(tx.id)))
                 .write(const TransactionsCompanion(sourceType: Value('goal')));
           }
+        }
+        if (from < 10) {
+          // Add endDate to Services for recurrence end date
+          await m.addColumn(services, services.endDate);
+          // Add alcanciaId to Goals
+          await m.addColumn(goals, goals.alcanciaId);
+          // Create alcancia default account if not exists
+          final alcanciaExists = await (select(accounts)..where((a) => a.id.equals(alcanciaDefaultAccountId))).getSingleOrNull();
+          if (alcanciaExists == null) {
+            await into(accounts).insert(AccountsCompanion.insert(
+              id: alcanciaDefaultAccountId,
+              name: 'Alcancía',
+              institutionName: const Value('Alcancía'),
+              type: 'wallet',
+              color: const Value(alcanciaDefaultColor),
+            ));
+          }
+          // Add new default categories
+          await _ensureDefaultCategories();
         }
       },
       beforeOpen: (details) async {

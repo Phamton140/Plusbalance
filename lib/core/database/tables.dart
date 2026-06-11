@@ -58,9 +58,10 @@ class Services extends Table with AuditMixin {
   TextColumn get name => text()();
   RealColumn get amount => real()();
   TextColumn get type => text().withDefault(const Constant('expense'))(); // income, expense
-  TextColumn get label => text().withDefault(const Constant('none'))(); // want, need, none
+  TextColumn get label => text().withDefault(const Constant('need'))(); // want, need, none
   TextColumn get frequency => text()(); // once, weekly, monthly, yearly
   DateTimeColumn get nextDate => dateTime()();
+  DateTimeColumn get endDate => dateTime().nullable()(); // Optional end date for recurrence
   TextColumn get accountId => text().nullable().references(Accounts, #id)();
   TextColumn get categoryId => text().nullable().references(Categories, #id)();
   IntColumn get reminderDaysBefore => integer().withDefault(const Constant(3))();
@@ -120,7 +121,8 @@ class Goals extends Table with AuditMixin {
   TextColumn get icon => text().nullable()();
   IntColumn get priority => integer().withDefault(const Constant(0))();
   TextColumn get color => text().withDefault(const Constant('#00D4AA'))();
-  TextColumn get status => text().withDefault(const Constant('active'))();
+  TextColumn get status => text().withDefault(const Constant('active'))(); // active, completed, archived
+  TextColumn get alcanciaId => text().nullable().references(Accounts, #id)(); // Reference to the piggy bank account
 
   @override
   Set<Column> get primaryKey => {id};
