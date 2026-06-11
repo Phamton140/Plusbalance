@@ -51,7 +51,7 @@ class _PinScreenState extends ConsumerState<PinScreen> {
 
   void _onDigit(String d) {
     if (_busy || _pin.length >= _pinLength) return;
-    HapticFeedback.mediumImpact();
+    HapticFeedback.lightImpact();
     setState(() {
       _pin += d;
       _errorText = null;
