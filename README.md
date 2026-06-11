@@ -58,10 +58,11 @@ Lo que queda son **extensiones de producto** (sync en la nube, presupuestos, mul
 - Selector de fechas siempre bloquea hoy y días pasados (`firstDate: tomorrow`).
 
 ### Categorías
-- 8 categorías por defecto con ícono y color únicos: Hogar, Alimentos, Salud, Gym, Transporte, Viajes, Compras, Ahorro/Metas.
+- 10 categorías por defecto con ícono y color únicos: Hogar, Alimentos, Salud, Gym, Transporte, Viajes, Compras, **Comunicación**, **Entretenimiento**, Ahorro/Metas.
 - Paleta de 16 colores diferenciados. Los colores **reservados** del sistema (Metas `#00D4AA`, Transferencia `#FB8C00`, Efectivo `#9E9E9E`) están **bloqueados**: el *picker* los muestra atenuados con candado y el guardado los rechaza aunque el usuario force la selección.
 - Iconos personalizables (12 opciones).
 - Validación de nombre único *case-insensitive*.
+- **Nota:** La categoría "Ahorro/Metas" no aparece en el registro de servicios ya que representa movimiento interno de la Alcancía.
 
 ### Transacciones
 - **Gasto**, **Ingreso** y **Transferencia** conmutables con un `SegmentedButton` (tamaño constante, sin íconos de selección para evitar saltos).
@@ -72,10 +73,14 @@ Lo que queda son **extensiones de producto** (sync en la nube, presupuestos, mul
 ### Metas de ahorro
 - Nombre, monto objetivo, fecha límite opcional.
 - Barra de progreso `Color.lerp(gris, verde, %)` con `ClipRRect`.
-- **Abonar a meta** debita automáticamente de la cuenta seleccionada y registra un gasto en la categoría "Ahorro / Metas" para mantener coherencia en el dashboard.
+- **Sistema de Alcancía**: el dinero se envía a una cuenta "Alcancía" centralizada y todas las metas muestran progreso simultáneamente basado en el balance de la Alcancía (`min(Alcancia, target) / target`).
+- **Alerta de completitud**: cuando el balance de la Alcancía es suficiente para completar una meta, aparece una notificación en el dashboard.
+- **Completar meta**: el usuario decide cuándo marcar una meta como completada, lo cual debita el monto de la Alcancía y crea un gasto en el historial.
+- **Tarjeta de Alcancía**: cuenta especial con diseño dorado e icono de cerdito, no eliminable.
 
 ### Servicios recurrentes
 - Nombre, monto, cuenta, categoría, fecha de inicio, frecuencia (`once` / `weekly` / `biweekly` / `monthly` / `yearly`), etiquetas *want/need* y estado.
+- **Fecha fin de recurrencia** opcional: si no se indica, la recurrencia es indefinida (excepto `once` que no se repite).
 - **Picker de fecha** siempre `>= mañana`.
 - **Recordatorios**: pantalla de Notificaciones muestra servicios atrasados y próximos a vencer, con un botón **Aplicar** que crea la transacción, descuenta el saldo de la cuenta y avanza la fecha del servicio en una sola operación atómica.
 
@@ -172,7 +177,7 @@ Drift vive en `lib/core/database/`. Tablas principales:
 | `Goals` | Nombre, monto objetivo, monto actual, fecha límite. |
 | `Settings` | Llave/valor (cuenta por defecto, moneda, etc.). |
 
-**Versión de esquema actual: `8`.** Las migraciones se declaran en `AppDatabase.onUpgrade`:
+**Versión de esquema actual: `10`.** Las migraciones se declaran en `AppDatabase.onUpgrade`:
 
 | v | Cambio |
 |---|--------|
@@ -183,6 +188,8 @@ Drift vive en `lib/core/database/`. Tablas principales:
 | 6 | Columnas de recarga quincenal (1ra y 2da). |
 | 7 | `institutionName='Efectivo'` en cuenta por defecto. |
 | 8 | Cuenta efectivo siempre gris + colores de categorías reservados. |
+| 9 | Columnas `transferGroupId` y `sourceType` en transacciones. |
+| 10 | `endDate` en Services + `alcanciaId` en Goals + cuenta Alcancía + nuevas categorías. |
 
 Para regenerar el código Drift:
 
