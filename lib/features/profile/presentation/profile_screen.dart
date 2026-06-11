@@ -15,7 +15,7 @@ class ProfileScreen extends ConsumerStatefulWidget {
 }
 
 class _ProfileScreenState extends ConsumerState<ProfileScreen> {
-  String _username = 'Usuario +Balance';
+  String _username = 'Usuario Balance';
 
   String get _initials {
     if (_username.isEmpty) return "?";
@@ -126,7 +126,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   subtitle: const Text('Crea y edita tus categorías de gastos'),
                   onTap: () => context.push('/categories'),
                 ),
-                const Divider(height: 1),
+const Divider(height: 1),
                 ListTile(
                   leading: const Icon(Icons.delete_forever, color: Colors.red),
                   title: const Text('Restablecer Datos', style: TextStyle(color: Colors.red)),
@@ -141,26 +141,52 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                           TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancelar')),
                           ElevatedButton(
                             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-                            onPressed: () => Navigator.pop(context, true), 
+                            onPressed: () => Navigator.pop(context, true),
                             child: const Text('Borrar Todo')
                           ),
                         ],
                       )
                     );
-                    
-                      if (confirm == true) {
-                        final db = ref.read(databaseProvider);
-                        await db.transaction(() async {
-                          await db.delete(db.transactions).go();
-                          await db.delete(db.services).go();
-                          await db.delete(db.goals).go();
-                          await (db.delete(db.accounts)..where((a) => a.id.isNotIn([efectivoDefaultAccountId]))).go();
-                          await (db.delete(db.categories)..where((c) => c.id.isNotIn(defaultCategoryIds))).go();
-                        });
+
+                    if (confirm == true) {
+                      final db = ref.read(databaseProvider);
+                      await db.transaction(() async {
+                        await db.delete(db.transactions).go();
+                        await db.delete(db.services).go();
+                        await db.delete(db.goals).go();
+                        await (db.delete(db.accounts)..where((a) => a.id.isNotIn([efectivoDefaultAccountId]))).go();
+                        await (db.delete(db.categories)..where((c) => c.id.isNotIn(defaultCategoryIds))).go();
+                      });
                       if (context.mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Datos restablecidos. Cuenta "Efectivo" y categorías por defecto conservadas.')));
                         context.go('/');
                       }
+                    }
+                  },
+                ),
+                const Divider(height: 1),
+                ListTile(
+                  leading: const Icon(Icons.logout, color: Colors.orange),
+                  title: const Text('Cerrar Sesión', style: TextStyle(color: Colors.orange)),
+                  subtitle: const Text('Vuelve a la pantalla de PIN', style: TextStyle(color: Colors.orangeAccent, fontSize: 12)),
+                  onTap: () async {
+                    final confirm = await showDialog<bool>(
+                      context: context,
+                      builder: (context) => AlertDialog(
+                        title: const Text('Cerrar Sesión'),
+                        content: const Text('¿Quieres cerrar la sesión actual? Necesitarás tu PIN para volver a entrar.'),
+                        actions: [
+                          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancelar')),
+                          ElevatedButton(
+                            onPressed: () => Navigator.pop(context, true),
+                            child: const Text('Cerrar')
+                          ),
+                        ],
+                      )
+                    );
+
+                    if (confirm == true && context.mounted) {
+                      context.go('/pin');
                     }
                   },
                 ),
