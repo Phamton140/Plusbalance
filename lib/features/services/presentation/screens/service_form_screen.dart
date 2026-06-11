@@ -227,7 +227,7 @@ class _ServiceFormScreenState extends ConsumerState<ServiceFormScreen> {
               ],
               const SizedBox(height: 16),
               Consumer(
-                builder: (context, ref, child) {
+                builder: (context, ref, _) {
                   final accountsAsync = ref.watch(_activeAccountsProvider);
                   return accountsAsync.when(
                     data: (accounts) {
@@ -247,7 +247,7 @@ class _ServiceFormScreenState extends ConsumerState<ServiceFormScreen> {
               ),
               const SizedBox(height: 16),
               Consumer(
-                builder: (context, ref, child) {
+                builder: (context, ref, _) {
                   final catsAsync = ref.watch(_categoriesProvider);
                   return catsAsync.when(
                     data: (cats) {

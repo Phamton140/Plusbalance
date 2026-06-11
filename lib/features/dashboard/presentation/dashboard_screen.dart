@@ -91,7 +91,7 @@ class DashboardScreen extends ConsumerWidget {
                       GestureDetector(
                         onTap: () => context.push('/profile').then((_) => ref.refresh(settingsDaoProvider)),
                         child: Consumer(
-                          builder: (context, ref, child) {
+                          builder: (context, ref, _) {
                             final usernameAsync = ref.watch(_usernameProvider);
                             return Hero(
                               tag: 'avatar_profile',
@@ -138,7 +138,7 @@ class DashboardScreen extends ConsumerWidget {
                       height: 180,
                       padding: const EdgeInsets.symmetric(horizontal: 24),
                       child: Consumer(
-                        builder: (context, ref, child) {
+                        builder: (context, ref, _) {
                           final expensesAsync = ref.watch(expensesProvider);
                           final catsAsync = ref.watch(allCategoriesProvider);
                           

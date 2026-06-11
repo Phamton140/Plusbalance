@@ -302,7 +302,7 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
                   if (_type != 'transfer') ...[
                     const SizedBox(height: 24),
                     Consumer(
-                      builder: (context, ref, child) {
+                      builder: (context, ref, _) {
                         final catsAsync = ref.watch(allCategoriesStreamProvider);
                         return catsAsync.when(
                           data: (cats) {

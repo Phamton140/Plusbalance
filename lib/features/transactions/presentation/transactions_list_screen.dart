@@ -150,7 +150,7 @@ class TransactionsListScreen extends ConsumerWidget {
               } catch (_) {
                 header = manualDayHeader(d);
               }
-              items.add(_HistoryItem.header(header, d));
+              items.add(_HistoryItem.header(header));
               lastDay = d;
             }
             items.add(_HistoryItem.tx(tx));
@@ -338,10 +338,9 @@ final filteredTransactionsProvider = StreamProvider.family<List<Transaction>, St
 /// ListView plano agrupado por fecha.
 class _HistoryItem {
   final String? header;
-  final DateTime? day;
   final Transaction? tx;
-  const _HistoryItem.header(this.header, this.day) : tx = null;
-  const _HistoryItem.tx(this.tx) : header = null, day = null;
+  const _HistoryItem.header(this.header) : tx = null;
+  const _HistoryItem.tx(this.tx) : header = null;
 }
 
 /// Muestra un diálogo de confirmación y, si el usuario acepta, ejecuta

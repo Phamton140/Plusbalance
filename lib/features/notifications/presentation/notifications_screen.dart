@@ -446,7 +446,7 @@ class NotificationsScreen extends ConsumerWidget {
 
               // NO NOTIFICATIONS
               Consumer(
-                builder: (context, ref, child) {
+                builder: (context, ref, _) {
                   final lateList = ref.watch(lateServicesProvider).value ?? <Service>[];
                   final upcomingList = (ref.watch(upcomingServicesProvider).value ?? <Service>[]).where((s) => s.status != 'late').toList();
                   final rechargeList = ref.watch(upcomingAccountRechargesProvider).value ?? [];
