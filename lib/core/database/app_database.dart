@@ -34,6 +34,7 @@ const List<String> defaultCategoryIds = [
   'default-cat-compras',
   'default-cat-comunicacion',
   'default-cat-entretenimiento',
+  'default-cat-prestamo',
   goalDefaultCategoryId,
   transferenciaDefaultCategoryId,
 ];
@@ -56,6 +57,7 @@ const List<_DefaultCategory> _defaultCategories = [
   _DefaultCategory('default-cat-compras', 'Compras', Icons.shopping_cart, '#5E35B1'),
   _DefaultCategory('default-cat-comunicacion', 'Comunicacion', Icons.phone, '#03A9F4'),
   _DefaultCategory('default-cat-entretenimiento', 'Entretenimiento', Icons.theater_comedy, '#FF5722'),
+  _DefaultCategory('default-cat-prestamo', 'Prestamo', Icons.account_balance_wallet, '#FF9800'),
   _DefaultCategory(goalDefaultCategoryId, goalDefaultCategoryName, Icons.savings, goalDefaultCategoryColor),
   _DefaultCategory(transferenciaDefaultCategoryId, transferenciaDefaultCategoryName, Icons.sync_alt, transferenciaDefaultColor),
 ];
