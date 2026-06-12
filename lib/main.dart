@@ -84,6 +84,11 @@ class _PlusBalanceAppState extends ConsumerState<PlusBalanceApp> {
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
       themeMode: themeMode,
+      locale: const Locale('es'),
+      localizationsDelegates: const [
+        DefaultMaterialLocalizations.delegate,
+        DefaultWidgetsLocalizations.delegate,
+      ],
       routerConfig: router,
     );
   }
