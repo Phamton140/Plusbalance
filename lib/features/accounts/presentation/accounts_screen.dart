@@ -12,21 +12,29 @@ class AccountsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final accountsAsync = ref.watch(activeAccountsProvider);
+    final defaultAccountIdAsync = ref.watch(settingsDaoProvider).watchSetting('default_account_id');
 
     return Scaffold(
       appBar: AppBar(title: const Text('Cuentas y Tarjetas')),
-      body: accountsAsync.when(
-        data: (accounts) {
-          if (accounts.isEmpty) {
-            return const Center(child: Text('Aún no tienes cuentas registradas', style: TextStyle(color: Colors.grey)));
-          }
-          return ListView.builder(
-            padding: const EdgeInsets.all(16),
-            itemCount: accounts.length,
-            itemBuilder: (context, index) {
-              final account = accounts[index];
-              return _AccountCard(account: account, isDefault: false);
+      body: defaultAccountIdAsync.when(
+        data: (defaultAccountId) {
+          return accountsAsync.when(
+            data: (accounts) {
+              if (accounts.isEmpty) {
+                return const Center(child: Text('Aún no tienes cuentas registradas', style: TextStyle(color: Colors.grey)));
+              }
+              return ListView.builder(
+                padding: const EdgeInsets.all(16),
+                itemCount: accounts.length,
+                itemBuilder: (context, index) {
+                  final account = accounts[index];
+                  final isDefault = defaultAccountId == account.id;
+                  return _AccountCard(account: account, isDefault: isDefault);
+                },
+              );
             },
+            loading: () => const Center(child: CircularProgressIndicator()),
+            error: (e, s) => Center(child: Text('Error: $e')),
           );
         },
         loading: () => const Center(child: CircularProgressIndicator()),
@@ -69,7 +77,7 @@ class _AccountCard extends ConsumerWidget {
         onTap: () => _showOptions(context, ref),
         borderRadius: BorderRadius.circular(16),
         child: Container(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(16),
             gradient: LinearGradient(
