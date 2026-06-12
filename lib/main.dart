@@ -42,17 +42,6 @@ class PlusBalanceApp extends ConsumerStatefulWidget {
 
 class _PlusBalanceAppState extends ConsumerState<PlusBalanceApp> {
   @override
-  void initState() {
-    super.initState();
-    ref.listenManual(authStateProvider, (previous, next) {
-      if (next.isAuthenticated && !(previous?.isAuthenticated ?? false)) {
-        final router = ref.read(appRouterProvider);
-        router.go('/');
-      }
-    });
-  }
-
-  @override
   Widget build(BuildContext context) {
     final themeMode = ref.watch(themeProvider);
     final auth = ref.watch(authStateProvider);
