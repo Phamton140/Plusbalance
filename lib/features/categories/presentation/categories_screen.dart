@@ -31,32 +31,36 @@ class CategoriesScreen extends ConsumerWidget {
             itemCount: categories.length,
             itemBuilder: (context, index) {
               final cat = categories[index];
-              return ListTile(
-                leading: CircleAvatar(
-                  backgroundColor: Color(int.parse(cat.color.replaceAll('#', '0xFF'))).withValues(alpha: 0.2),
-                  child: Icon(
-                    iconFromCodePoint(cat.icon),
-                    color: Color(int.parse(cat.color.replaceAll('#', '0xFF'))),
+              return RepaintBoundary(
+                child: ListTile(
+                  leading: CircleAvatar(
+                    backgroundColor: Color(int.parse(cat.color.replaceAll('#', '0xFF'))).withValues(alpha: 0.2),
+                    child: Icon(
+                      iconFromCodePoint(cat.icon),
+                      color: Color(int.parse(cat.color.replaceAll('#', '0xFF'))),
+                    ),
                   ),
-                ),
-                title: Text(cat.name, style: const TextStyle(fontWeight: FontWeight.bold)),
-                trailing: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    IconButton(
-                      icon: const Icon(Icons.edit, color: Colors.blue),
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (_) => CategoryFormScreen(category: cat)),
-                        );
-                      },
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.delete, color: Colors.red),
-                      onPressed: () => _confirmDelete(context, ref, cat),
-                    ),
-                  ],
+                  title: Text(cat.name, style: const TextStyle(fontWeight: FontWeight.bold)),
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.edit, color: Colors.blue),
+                        tooltip: 'Editar categoría',
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (_) => CategoryFormScreen(category: cat)),
+                          );
+                        },
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.delete, color: Colors.red),
+                        tooltip: 'Eliminar categoría',
+                        onPressed: () => _confirmDelete(context, ref, cat),
+                      ),
+                    ],
+                  ),
                 ),
               );
             },

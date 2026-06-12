@@ -8,8 +8,10 @@ import '../../features/services/presentation/services_screen.dart';
 import '../../features/transactions/presentation/transactions_list_screen.dart';
 import '../../features/goals/presentation/goals_screen.dart';
 import '../../features/notifications/presentation/notifications_screen.dart';
+import '../../features/auth/providers/auth_providers.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
+  ref.watch(authStateProvider);
   return GoRouter(
     initialLocation: '/',
     routes: [

@@ -42,10 +42,10 @@ final categoriesDaoProvider = Provider<CategoriesDao>((ref) {
   return CategoriesDao(ref.watch(databaseProvider));
 });
 
-final activeAccountsProvider = StreamProvider<List<Account>>((ref) {
+final activeAccountsProvider = StreamProvider.autoDispose<List<Account>>((ref) {
   return ref.watch(accountsDaoProvider).watchActiveAccounts();
 });
 
-final allCategoriesStreamProvider = StreamProvider<List<Category>>((ref) {
+final allCategoriesStreamProvider = StreamProvider.autoDispose<List<Category>>((ref) {
   return ref.watch(categoriesDaoProvider).watchAllCategories();
 });

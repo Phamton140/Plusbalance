@@ -172,8 +172,9 @@ class TransactionsListScreen extends ConsumerWidget {
             itemCount: items.length,
             itemBuilder: (context, index) {
               final item = items[index];
+              Widget child;
               if (item.header != null) {
-                return Padding(
+                child = Padding(
                   padding: EdgeInsets.only(
                       top: index == 0 ? 0 : 12, bottom: 8),
                   child: Row(
@@ -193,12 +194,12 @@ class TransactionsListScreen extends ConsumerWidget {
                     ],
                   ),
                 );
-              }
-              final tx = item.tx!;
-              final isIncome = tx.type == 'income';
-              final isTransfer = tx.type == 'transfer';
+              } else {
+                final tx = item.tx!;
+                final isIncome = tx.type == 'income';
+                final isTransfer = tx.type == 'transfer';
 
-              return Dismissible(
+                child = Dismissible(
                 key: Key(tx.id),
                 direction: DismissDirection.endToStart,
                 background: Container(
@@ -301,8 +302,10 @@ class TransactionsListScreen extends ConsumerWidget {
                       ],
                     ),
                   ),
-                ),
-              );
+                  ),
+                );
+              }
+              return RepaintBoundary(child: child);
             },
           );
         },
@@ -323,14 +326,29 @@ class _FilterChip extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isSelected = value == groupValue;
-    return ChoiceChip(
-      label: Text(title),
-      selected: isSelected,
-      onSelected: (selected) {
-        if (selected) {
-          ref.read(transactionFilterProvider.notifier).setFilter(value);
-        }
+    final colorScheme = Theme.of(context).colorScheme;
+    
+    return ElevatedButton(
+      onPressed: () {
+        ref.read(transactionFilterProvider.notifier).setFilter(value);
       },
+      style: ElevatedButton.styleFrom(
+        backgroundColor: isSelected ? colorScheme.primary : colorScheme.surface,
+        foregroundColor: isSelected ? colorScheme.onPrimary : colorScheme.onSurface,
+        elevation: 0,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8),
+          side: BorderSide(
+            color: isSelected ? colorScheme.primary : colorScheme.outline,
+          ),
+        ),
+        textStyle: const TextStyle(
+          fontSize: 14,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+      child: Text(title),
     );
   }
 }

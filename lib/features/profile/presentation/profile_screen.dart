@@ -87,6 +87,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     ),
                     IconButton(
                       icon: const Icon(Icons.edit, size: 20, color: Colors.grey),
+                      tooltip: 'Editar nombre',
                       onPressed: _editUsername,
                     )
                   ],

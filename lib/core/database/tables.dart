@@ -6,6 +6,7 @@ mixin AuditMixin on Table {
   DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
 }
 
+@TableIndex(name: 'idx_accounts_archived', columns: {#isArchived})
 class Accounts extends Table with AuditMixin {
   TextColumn get id => text()();
   TextColumn get name => text()();
@@ -53,6 +54,9 @@ class Categories extends Table with AuditMixin {
   Set<Column> get primaryKey => {id};
 }
 
+@TableIndex(name: 'idx_services_active', columns: {#isActive})
+@TableIndex(name: 'idx_services_nextdate', columns: {#nextDate})
+@TableIndex(name: 'idx_services_status', columns: {#status})
 class Services extends Table with AuditMixin {
   TextColumn get id => text()();
   TextColumn get name => text()();
@@ -112,6 +116,7 @@ class Transactions extends Table with AuditMixin {
   Set<Column> get primaryKey => {id};
 }
 
+@TableIndex(name: 'idx_goals_status', columns: {#status})
 class Goals extends Table with AuditMixin {
   TextColumn get id => text()();
   TextColumn get name => text()();

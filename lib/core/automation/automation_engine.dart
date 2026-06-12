@@ -5,46 +5,42 @@ import '../providers/database_provider.dart';
 import '../database/app_database.dart';
 import '../../features/services/domain/service_scheduler.dart';
 
-final automationEngineProvider = FutureProvider<void>((ref) async {
+/// Core automation logic - extracted to be reusable
+Future<void> runAutomationEngine(Ref ref) async {
   final servicesDao = ref.read(servicesDaoProvider);
   final transactionsDao = ref.read(transactionsDaoProvider);
   final accountsDao = ref.read(accountsDaoProvider);
 
-  // Obtener servicios activos que tienen autogeneración habilitada
   final activeServices = await servicesDao.watchActiveServices().first;
   final now = DateTime.now();
 
   for (final service in activeServices) {
     if (service.autoGenerateTransaction && service.nextDate.isBefore(now) && service.status != 'late') {
-      // 1. Necesitamos saber la cuenta. Si no tiene, tomamos la primera activa
       String accountId = service.accountId ?? '';
       if (accountId.isEmpty) {
         final accounts = await accountsDao.watchActiveAccounts().first;
         if (accounts.isNotEmpty) {
           accountId = accounts.first.id;
         } else {
-          continue; // No hay cuentas para registrar el movimiento
+          continue;
         }
       }
 
-      // Verificamos el saldo de la cuenta
       final account = await (accountsDao.select(accountsDao.accounts)..where((a) => a.id.equals(accountId))).getSingleOrNull();
       if (account == null) continue;
 
       final isExpense = service.type == 'expense';
       
       if (isExpense && account.balance < service.amount) {
-        // No hay saldo suficiente, marcar como atrasado
         await servicesDao.updateService(
           service.copyWith(
             status: 'late',
             updatedAt: DateTime.now(),
           ),
         );
-        continue; // No generamos transacción ni avanzamos la fecha
+        continue;
       }
 
-      // 2. Registrar la transacción
       final isIncome = service.type == 'income';
       await transactionsDao.createTransaction(
         TransactionsCompanion.insert(
@@ -64,10 +60,8 @@ final automationEngineProvider = FutureProvider<void>((ref) async {
         isIncome,
       );
 
-      // 3. Reprogramar la próxima fecha
       final nextDate = ServiceScheduler.nextDateForService(service: service, now: now);
       if (nextDate == null) {
-        // Frecuencia 'once' o no soportada: desactivar el servicio.
         await servicesDao.updateService(
           service.copyWith(
             isActive: false,
@@ -87,4 +81,14 @@ final automationEngineProvider = FutureProvider<void>((ref) async {
       );
     }
   }
+}
+
+/// Provider that runs automation once on app startup (when authenticated)
+final automationEngineProvider = FutureProvider<void>((ref) async {
+  await runAutomationEngine(ref);
+});
+
+/// Provider to manually trigger automation (e.g., from settings or pull-to-refresh)
+final triggerAutomationProvider = FutureProvider<void>((ref) async {
+  await runAutomationEngine(ref);
 });

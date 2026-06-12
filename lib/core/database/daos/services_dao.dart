@@ -19,18 +19,18 @@ class ServicesDao extends DatabaseAccessor<AppDatabase> with _$ServicesDaoMixin 
     ).watch();
   }
 
+  /// Reactive stream of upcoming services (next 7 days)
+  /// Uses a computed date range that updates automatically via the stream
   Stream<List<Service>> watchUpcomingServices() {
-    return Stream.periodic(const Duration(minutes: 1)).asyncMap((_) async {
-      final now = DateTime.now();
-      final today = DateTime(now.year, now.month, now.day);
-      final next7Days = today.add(const Duration(days: 7, hours: 23, minutes: 59, seconds: 59));
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final next7Days = today.add(const Duration(days: 7, hours: 23, minutes: 59, seconds: 59));
 
-      return (select(services)
-        ..where((t) => t.isActive.equals(true))
-        ..where((t) => t.nextDate.isBetweenValues(today, next7Days))
-        ..orderBy([(t) => OrderingTerm(expression: t.nextDate, mode: OrderingMode.asc)])
-      ).get();
-    });
+    return (select(services)
+      ..where((t) => t.isActive.equals(true))
+      ..where((t) => t.nextDate.isBetweenValues(today, next7Days))
+      ..orderBy([(t) => OrderingTerm(expression: t.nextDate, mode: OrderingMode.asc)])
+    ).watch();
   }
 
   Future<int> createService(Insertable<Service> service) {

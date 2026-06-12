@@ -217,12 +217,10 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
                       color: colorScheme.onSurface,
                     ),
                     decoration: InputDecoration(
-                      labelText: 'Monto',
-                      hintText: '0.00',
-                      prefixText: '\$ ',
-                      prefixStyle: TextStyle(
-                        fontSize: 28,
-                        fontWeight: FontWeight.w700,
+                      hintText: '\$ 0.00',
+                      hintStyle: TextStyle(
+                        fontSize: 36,
+                        fontWeight: FontWeight.w800,
                         color: colorScheme.onSurfaceVariant,
                       ),
                       filled: true,

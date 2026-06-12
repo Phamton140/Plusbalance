@@ -12,12 +12,14 @@ class AccountsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final accountsAsync = ref.watch(activeAccountsProvider);
-    final defaultAccountIdAsync = ref.watch(settingsDaoProvider).watchSetting('default_account_id');
+    final defaultAccountIdStream = ref.watch(settingsDaoProvider).watchSetting('default_account_id');
 
     return Scaffold(
       appBar: AppBar(title: const Text('Cuentas y Tarjetas')),
-      body: defaultAccountIdAsync.when(
-        data: (defaultAccountId) {
+      body: StreamBuilder<String?>(
+        stream: defaultAccountIdStream,
+        builder: (context, defaultSnapshot) {
+          final defaultAccountId = defaultSnapshot.data;
           return accountsAsync.when(
             data: (accounts) {
               if (accounts.isEmpty) {
@@ -29,7 +31,9 @@ class AccountsScreen extends ConsumerWidget {
                 itemBuilder: (context, index) {
                   final account = accounts[index];
                   final isDefault = defaultAccountId == account.id;
-                  return _AccountCard(account: account, isDefault: isDefault);
+                  return RepaintBoundary(
+                    child: _AccountCard(account: account, isDefault: isDefault),
+                  );
                 },
               );
             },
@@ -37,8 +41,6 @@ class AccountsScreen extends ConsumerWidget {
             error: (e, s) => Center(child: Text('Error: $e')),
           );
         },
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, s) => Center(child: Text('Error: $e')),
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
@@ -77,6 +79,7 @@ class _AccountCard extends ConsumerWidget {
         onTap: () => _showOptions(context, ref),
         borderRadius: BorderRadius.circular(16),
         child: Container(
+          height: 250,
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(16),
@@ -148,9 +151,9 @@ class _AccountCard extends ConsumerWidget {
                 ],
               ),
               if (_hasRecharge(account)) ...[
-                const SizedBox(height: 12),
+                const SizedBox(height: 8),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
                     color: Colors.white.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(8),
@@ -158,12 +161,12 @@ class _AccountCard extends ConsumerWidget {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(Icons.autorenew, color: Colors.white, size: 14),
+                      const Icon(Icons.autorenew, color: Colors.white, size: 12),
                       const SizedBox(width: 6),
                       Flexible(
                         child: Text(
                           _rechargeFooterText(account),
-                          style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w500),
+                          style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w500),
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
@@ -305,11 +308,12 @@ class _AlcanciaCard extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 16),
       elevation: 4,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: InkWell(
+        child: InkWell(
         onTap: () {},
         borderRadius: BorderRadius.circular(16),
         child: Container(
-          padding: const EdgeInsets.all(24),
+          height: 250,
+          padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(16),
             gradient: LinearGradient(
@@ -376,9 +380,9 @@ class _AlcanciaCard extends StatelessWidget {
                   ),
                 ],
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 8),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
                   color: Colors.white.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(8),
@@ -386,12 +390,12 @@ class _AlcanciaCard extends StatelessWidget {
                 child: const Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.info_outline, color: Colors.white, size: 14),
+                    Icon(Icons.info_outline, color: Colors.white, size: 12),
                     SizedBox(width: 6),
                     Flexible(
                       child: Text(
                         'Dinero reservado para metas',
-                        style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w500),
+                        style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w500),
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),

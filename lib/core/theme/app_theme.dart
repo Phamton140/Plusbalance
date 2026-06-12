@@ -14,7 +14,7 @@ class AppTheme {
   static const backgroundDark = Color(0xFF0F0F1A);
   static const surfaceDark = Color(0xFF1A1A2E);
   static const textPrimaryDark = Colors.white;
-  static const textSecondaryDark = Colors.white70;
+  static const textSecondaryDark = Color(0xFFE0E0E0); // Improved contrast from white70
 
   static ThemeData get lightTheme {
     return ThemeData(
@@ -100,7 +100,7 @@ class AppTheme {
         elevation: 0,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
-          side: const BorderSide(color: Colors.white12, width: 1),
+          side: const BorderSide(color: Color(0xFF3A3A4E), width: 1), // Improved contrast from white12
         ),
       ),
     );

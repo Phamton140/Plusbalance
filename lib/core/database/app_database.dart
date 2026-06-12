@@ -77,7 +77,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 10;
+  int get schemaVersion => 11;
 
   @override
   MigrationStrategy get migration {
@@ -232,6 +232,14 @@ class AppDatabase extends _$AppDatabase {
           }
           // Add new default categories
           await _ensureDefaultCategories();
+        }
+        if (from < 11) {
+          // Add indexes for frequently queried columns to improve performance
+          await customStatement('CREATE INDEX IF NOT EXISTS idx_services_active ON services(isActive)');
+          await customStatement('CREATE INDEX IF NOT EXISTS idx_services_nextdate ON services(nextDate)');
+          await customStatement('CREATE INDEX IF NOT EXISTS idx_services_status ON services(status)');
+          await customStatement('CREATE INDEX IF NOT EXISTS idx_accounts_archived ON accounts(isArchived)');
+          await customStatement('CREATE INDEX IF NOT EXISTS idx_goals_status ON goals(status)');
         }
       },
       beforeOpen: (details) async {

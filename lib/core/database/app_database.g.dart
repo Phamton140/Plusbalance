@@ -5636,6 +5636,22 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   );
   late final $AttachmentsTable attachments = $AttachmentsTable(this);
   late final $SettingsTable settings = $SettingsTable(this);
+  late final Index idxAccountsArchived = Index(
+    'idx_accounts_archived',
+    'CREATE INDEX idx_accounts_archived ON accounts (is_archived)',
+  );
+  late final Index idxServicesActive = Index(
+    'idx_services_active',
+    'CREATE INDEX idx_services_active ON services (is_active)',
+  );
+  late final Index idxServicesNextdate = Index(
+    'idx_services_nextdate',
+    'CREATE INDEX idx_services_nextdate ON services (next_date)',
+  );
+  late final Index idxServicesStatus = Index(
+    'idx_services_status',
+    'CREATE INDEX idx_services_status ON services (status)',
+  );
   late final Index idxTxDate = Index(
     'idx_tx_date',
     'CREATE INDEX idx_tx_date ON transactions (date)',
@@ -5656,6 +5672,10 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     'idx_tx_group',
     'CREATE INDEX idx_tx_group ON transactions (transfer_group_id)',
   );
+  late final Index idxGoalsStatus = Index(
+    'idx_goals_status',
+    'CREATE INDEX idx_goals_status ON goals (status)',
+  );
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -5670,11 +5690,16 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     transactionTags,
     attachments,
     settings,
+    idxAccountsArchived,
+    idxServicesActive,
+    idxServicesNextdate,
+    idxServicesStatus,
     idxTxDate,
     idxTxAccount,
     idxTxService,
     idxTxType,
     idxTxGroup,
+    idxGoalsStatus,
   ];
 }
 

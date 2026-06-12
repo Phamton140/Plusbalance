@@ -21,7 +21,7 @@ class AccountRecharge {
 /// Devuelve la lista de recargas próximas (≤7 días o vencidas).
 /// Para cuentas quincenales emite DOS entradas (1ra y 2da fecha).
 final upcomingAccountRechargesProvider =
-    StreamProvider<List<AccountRecharge>>((ref) {
+    StreamProvider.autoDispose<List<AccountRecharge>>((ref) {
   return ref.watch(accountsDaoProvider).watchActiveAccounts().map((accounts) {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);

@@ -2,11 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:fl_chart/fl_chart.dart';
-import 'package:flutter_animate/flutter_animate.dart';
 import '../../transactions/presentation/screens/transaction_form_screen.dart';
 import '../../services/providers/services_providers.dart';
 import '../../../core/providers/database_provider.dart';
-import '../../../core/automation/automation_engine.dart';
 import '../../../core/database/app_database.dart';
 import '../../notifications/providers/recharge_providers.dart';
 
@@ -15,10 +13,7 @@ class DashboardScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    ref.watch(automationEngineProvider);
-
     final totalBalanceAsync = ref.watch(totalBalanceProvider);
-    final transactionsAsync = ref.watch(recentTransactionsProvider);
 
     return Scaffold(
       body: SafeArea(
@@ -49,82 +44,97 @@ class DashboardScreen extends ConsumerWidget {
                             fontWeight: FontWeight.w900,
                             letterSpacing: -1,
                           ),
-                        ).animate().fadeIn().slideY(begin: 0.2),
+                        ),
                         loading: () => const Text("\$ --.--", style: TextStyle(fontSize: 36, fontWeight: FontWeight.w900)),
                         error: (e, s) => const Text("Error", style: TextStyle(fontSize: 36)),
                       ),
                     ],
                   ),
-                  Row(
-                    children: [
-                      Consumer(
-                        builder: (context, ref, _) {
-                          final count = ref.watch(notificationCountProvider);
+                      Row(
+                        children: [
+                          Consumer(
+                            builder: (context, ref, _) {
+                              final count = ref.watch(notificationCountProvider);
 
-                          return Stack(
-                            children: [
-                              IconButton(
-                                icon: const Icon(Icons.notifications_outlined, size: 28),
-                                onPressed: () => context.push('/notifications'),
-                              ),
-                              if (count > 0)
-                                Positioned(
-                                  right: 8,
-                                  top: 8,
-                                  child: Container(
-                                    padding: const EdgeInsets.all(4),
-                                    decoration: const BoxDecoration(
-                                      color: Colors.red,
-                                      shape: BoxShape.circle,
+                              return Stack(
+                                children: [
+                                  IconButton(
+                                    icon: const Icon(Icons.notifications_outlined, size: 28),
+                                    tooltip: 'Notificaciones',
+                                    onPressed: () => context.push('/notifications'),
+                                  ),
+                                  if (count > 0)
+                                    Positioned(
+                                      right: 8,
+                                      top: 8,
+                                      child: Container(
+                                        padding: const EdgeInsets.all(4),
+                                        decoration: const BoxDecoration(
+                                          color: Colors.red,
+                                          shape: BoxShape.circle,
+                                        ),
+                                        child: Text(
+                                          '$count',
+                                          style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                                        ),
+                                      ),
                                     ),
-                                    child: Text(
-                                      '$count',
-                                      style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                                ],
+                              );
+                            }
+                          ),
+                          const SizedBox(width: 8),
+                          Consumer(
+                            builder: (context, ref, _) {
+                              final usernameAsync = ref.watch(_usernameProvider);
+                              return usernameAsync.when(
+                                data: (name) {
+                                  String initials = "?";
+                                  if (name.isNotEmpty) {
+                                    final parts = name.split(" ").where((p) => p.isNotEmpty).toList();
+                                    if (parts.length >= 2) {
+                                      initials = "${parts[0][0]}${parts[1][0]}".toUpperCase();
+                                    } else {
+                                      initials = parts[0].substring(0, parts[0].length >= 2 ? 2 : 1).toUpperCase();
+                                    }
+                                  }
+                                  return InkWell(
+                                    onTap: () => context.push('/profile').then((_) => ref.refresh(settingsDaoProvider)),
+                                    borderRadius: BorderRadius.circular(24),
+                                    child: Semantics(
+                                      label: 'Perfil de usuario',
+                                      button: true,
+                                      child: CircleAvatar(
+                                        radius: 24,
+                                        backgroundColor: const Color(0xFF6C63FF),
+                                        child: Text(initials, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
+                                      ),
                                     ),
+                                  );
+                                },
+                                loading: () => InkWell(
+                                  onTap: () => context.push('/profile').then((_) => ref.refresh(settingsDaoProvider)),
+                                  borderRadius: BorderRadius.circular(24),
+                                  child: const CircleAvatar(
+                                    radius: 24,
+                                    backgroundColor: Colors.grey,
+                                    child: CircularProgressIndicator(strokeWidth: 2),
                                   ),
                                 ),
-                            ],
-                          );
-                        }
-                      ),
-                      const SizedBox(width: 8),
-                      GestureDetector(
-                        onTap: () => context.push('/profile').then((_) => ref.refresh(settingsDaoProvider)),
-                        child: Consumer(
-                          builder: (context, ref, _) {
-                            final usernameAsync = ref.watch(_usernameProvider);
-                            return Hero(
-                              tag: 'avatar_profile',
-                              child: CircleAvatar(
-                                radius: 24,
-                                backgroundColor: Colors.grey.withValues(alpha: 0.1),
-                                child: usernameAsync.when(
-                                  data: (name) {
-                                    String initials = "?";
-                                    if (name.isNotEmpty) {
-                                      final parts = name.split(" ").where((p) => p.isNotEmpty).toList();
-                                      if (parts.length >= 2) {
-                                        initials = "${parts[0][0]}${parts[1][0]}".toUpperCase();
-                                      } else {
-                                        initials = parts[0].substring(0, parts[0].length >= 2 ? 2 : 1).toUpperCase();
-                                      }
-                                    }
-                                    return CircleAvatar(
-                                      radius: 24,
-                                      backgroundColor: const Color(0xFF6C63FF),
-                                      child: Text(initials, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
-                                    );
-                                  },
-                                  loading: () => const CircularProgressIndicator(),
-                                  error: (e, s) => const Icon(Icons.person),
+                                error: (e, s) => InkWell(
+                                  onTap: () => context.push('/profile').then((_) => ref.refresh(settingsDaoProvider)),
+                                  borderRadius: BorderRadius.circular(24),
+                                  child: const CircleAvatar(
+                                    radius: 24,
+                                    backgroundColor: Colors.grey,
+                                    child: Icon(Icons.person, color: Colors.white),
+                                  ),
                                 ),
-                              ),
-                            );
-                          }
-                        ),
+                              );
+                            }
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
                 ],
               ),
             ),
@@ -139,21 +149,19 @@ class DashboardScreen extends ConsumerWidget {
                       padding: const EdgeInsets.symmetric(horizontal: 24),
                       child: Consumer(
                         builder: (context, ref, _) {
-                          final expensesAsync = ref.watch(expensesProvider);
-                          final catsAsync = ref.watch(allCategoriesProvider);
+                          final sectionsAsync = ref.watch(expenseDistributionProvider);
+                          final legendAsync = ref.watch(pieChartLegendProvider);
                           
-                          if (expensesAsync.isLoading || catsAsync.isLoading) {
-                            return const Center(child: CircularProgressIndicator());
-                          }
-                          
-                          final expenses = expensesAsync.value ?? [];
-                          final categories = catsAsync.value ?? [];
-                          
-                          if (expenses.isEmpty) {
-                            return const Center(child: Text('No hay gastos para graficar', style: TextStyle(color: Colors.grey)));
-                          }
-                          
-                          return _ExpensePieChart(transactions: expenses, categories: categories);
+                          return sectionsAsync.when(
+                            data: (sections) {
+                              if (sections.isEmpty) {
+                                return const Center(child: Text('No hay gastos para graficar', style: TextStyle(color: Colors.grey)));
+                              }
+                              return _ExpensePieChart(sections: sections, legend: legendAsync.value ?? []);
+                            },
+                            loading: () => const Center(child: CircularProgressIndicator()),
+                            error: (e, _) => Center(child: Text('Error: $e')),
+                          );
                         }
                       ),
                     ),
@@ -182,16 +190,16 @@ class DashboardScreen extends ConsumerWidget {
         label: const Text('Registrar'),
         backgroundColor: Theme.of(context).colorScheme.primary,
         foregroundColor: Colors.white,
-      ).animate().scale(delay: 500.ms, curve: Curves.easeOutBack),
+      ),
     );
   }
 }
 
 class _ExpensePieChart extends StatefulWidget {
-  final List<Transaction> transactions;
-  final List<Category> categories;
+  final List<PieChartSectionData> sections;
+  final List<PieChartLegendEntry> legend;
 
-  const _ExpensePieChart({required this.transactions, required this.categories});
+  const _ExpensePieChart({required this.sections, required this.legend});
 
   @override
   State<_ExpensePieChart> createState() => _ExpensePieChartState();
@@ -199,36 +207,10 @@ class _ExpensePieChart extends StatefulWidget {
 
 class _ExpensePieChartState extends State<_ExpensePieChart> {
   int touchedIndex = -1;
-  late Map<String, Category> _categoryById;
-
-  @override
-  void initState() {
-    super.initState();
-    _categoryById = {for (var c in widget.categories) c.id: c};
-  }
-
-  @override
-  void didUpdateWidget(covariant _ExpensePieChart oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.categories != widget.categories) {
-      _categoryById = {for (var c in widget.categories) c.id: c};
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
-    final sums = <String, double>{};
-    double total = 0;
-
-    for (final tx in widget.transactions) {
-      final catId = tx.categoryId ?? 'other';
-      sums[catId] = (sums[catId] ?? 0) + tx.amount;
-      total += tx.amount;
-    }
-
-    final entries = sums.entries.toList()..sort((a, b) => b.value.compareTo(a.value));
-
-    if (total == 0) return const SizedBox();
+    if (widget.sections.isEmpty) return const SizedBox();
 
     return Row(
       children: [
@@ -250,54 +232,37 @@ class _ExpensePieChartState extends State<_ExpensePieChart> {
               borderData: FlBorderData(show: false),
               sectionsSpace: 2,
               centerSpaceRadius: 30,
-              sections: List.generate(entries.length, (i) {
+              sections: List.generate(widget.sections.length, (i) {
                 final isTouched = i == touchedIndex;
-                final fontSize = isTouched ? 14.0 : 11.0;
-                final radius = isTouched ? 60.0 : 50.0;
-                final e = entries[i];
-                final percentage = (e.value / total) * 100;
-
-                Color color = Colors.grey;
-                if (e.key != 'other') {
-                  final cat = _categoryById[e.key];
-                  if (cat != null) {
-                    color = Color(int.parse(cat.color.replaceAll('#', '0xFF')));
-                  }
-                }
-
+                final section = widget.sections[i];
                 return PieChartSectionData(
-                  color: color,
-                  value: e.value,
-                  title: '${percentage.toStringAsFixed(0)}%',
-                  radius: radius,
-                  titleStyle: TextStyle(fontSize: fontSize, fontWeight: FontWeight.bold, color: Colors.white),
+                  color: section.color,
+                  value: section.value,
+                  title: section.title,
+                  radius: isTouched ? 60.0 : section.radius,
+                  titleStyle: TextStyle(
+                    fontSize: isTouched ? 14.0 : section.titleStyle?.fontSize ?? 11.0,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
                 );
               }),
             ),
-          ).animate().scale(duration: 500.ms, curve: Curves.easeOutBack),
+          ),
         ),
         Expanded(
           flex: 3,
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.start,
-            children: entries.take(4).map((e) {
-              String name = 'Otros';
-              Color color = Colors.grey;
-              if (e.key != 'other') {
-                final cat = _categoryById[e.key];
-                if (cat != null) {
-                  name = cat.name;
-                  color = Color(int.parse(cat.color.replaceAll('#', '0xFF')));
-                }
-              }
+            children: widget.legend.map((e) {
               return Padding(
                 padding: const EdgeInsets.only(bottom: 6),
                 child: Row(
                   children: [
-                    Container(width: 12, height: 12, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
+                    Container(width: 12, height: 12, decoration: BoxDecoration(color: e.color, shape: BoxShape.circle)),
                     const SizedBox(width: 8),
-                    Expanded(child: Text(name, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500))),
+                    Expanded(child: Text(e.name, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500))),
                   ],
                 ),
               );
@@ -326,7 +291,87 @@ final allCategoriesProvider = StreamProvider<List<Category>>((ref) {
   return ref.watch(categoriesDaoProvider).watchAllCategories();
 });
 
-final _usernameProvider = FutureProvider<String>((ref) async {
+/// Computed expense distribution for pie chart (moved out of build for performance)
+final expenseDistributionProvider = FutureProvider<List<PieChartSectionData>>((ref) async {
+  final expenses = await ref.watch(expensesProvider.future);
+  final categories = await ref.watch(allCategoriesProvider.future);
+
+  if (expenses.isEmpty) return [];
+
+  final categoryById = {for (var c in categories) c.id: c};
+  final sums = <String, double>{};
+  double total = 0;
+
+  for (final tx in expenses) {
+    final catId = tx.categoryId ?? 'other';
+    sums[catId] = (sums[catId] ?? 0) + tx.amount;
+    total += tx.amount;
+  }
+
+  if (total == 0) return [];
+
+  final entries = sums.entries.toList()..sort((a, b) => b.value.compareTo(a.value));
+
+  return entries.map((e) {
+    final percentage = (e.value / total) * 100;
+
+    Color color = Colors.grey;
+    if (e.key != 'other') {
+      final cat = categoryById[e.key];
+      if (cat != null) {
+        color = Color(int.parse(cat.color.replaceAll('#', '0xFF')));
+      }
+    }
+
+    return PieChartSectionData(
+      color: color,
+      value: e.value,
+      title: '${percentage.toStringAsFixed(0)}%',
+      radius: 50.0,
+      titleStyle: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.white),
+    );
+  }).toList();
+});
+
+/// Legend entries for pie chart
+final pieChartLegendProvider = FutureProvider<List<PieChartLegendEntry>>((ref) async {
+  final expenses = await ref.watch(expensesProvider.future);
+  final categories = await ref.watch(allCategoriesProvider.future);
+
+  if (expenses.isEmpty) return [];
+
+  final categoryById = {for (var c in categories) c.id: c};
+  final sums = <String, double>{};
+
+  for (final tx in expenses) {
+    final catId = tx.categoryId ?? 'other';
+    sums[catId] = (sums[catId] ?? 0) + tx.amount;
+  }
+
+  final entries = sums.entries.toList()..sort((a, b) => b.value.compareTo(a.value));
+
+  return entries.take(4).map((e) {
+    String name = 'Otros';
+    Color color = Colors.grey;
+    if (e.key != 'other') {
+      final cat = categoryById[e.key];
+      if (cat != null) {
+        name = cat.name;
+        color = Color(int.parse(cat.color.replaceAll('#', '0xFF')));
+      }
+    }
+    return PieChartLegendEntry(name: name, color: color);
+  }).toList();
+});
+
+/// Simple data class for legend
+class PieChartLegendEntry {
+  final String name;
+  final Color color;
+  const PieChartLegendEntry({required this.name, required this.color});
+}
+
+final _usernameProvider = FutureProvider.autoDispose<String>((ref) async {
   final dao = ref.watch(settingsDaoProvider);
   final name = await dao.getSetting('profile_username');
   return name ?? 'Usuario +Balance';

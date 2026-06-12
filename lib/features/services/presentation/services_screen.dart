@@ -37,7 +37,8 @@ class ServicesScreen extends ConsumerWidget {
               final isIncome = service.type == 'income';
               final isNeed = service.label == 'need';
               
-              return Dismissible(
+              return RepaintBoundary(
+                child: Dismissible(
                 key: Key(service.id),
                 direction: DismissDirection.endToStart,
                 background: Container(
@@ -137,6 +138,7 @@ class ServicesScreen extends ConsumerWidget {
                         MaterialPageRoute(builder: (_) => ServiceFormScreen(service: service)),
                       );
                     },
+                  ),
                   ),
                 ),
               );

@@ -5,12 +5,18 @@ import '../../../core/providers/database_provider.dart';
 import 'screens/goal_form_screen.dart';
 import 'screens/goal_add_funds_screen.dart';
 
+/// Shared provider for alcancia balance to avoid multiple subscriptions
+final alcanciaBalanceProvider = StreamProvider.autoDispose<Account?>((ref) {
+  return ref.watch(goalsDaoProvider).watchAlcanciaBalance();
+});
+
 class GoalsScreen extends ConsumerWidget {
   const GoalsScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final goalsStream = ref.watch(activeGoalsProvider);
+    final alcanciaAsync = ref.watch(alcanciaBalanceProvider);
 
     return Scaffold(
       appBar: AppBar(title: const Text('Metas de Ahorro')),
@@ -21,10 +27,9 @@ class GoalsScreen extends ConsumerWidget {
           }
           return Column(
             children: [
-              StreamBuilder<Account>(
-                stream: ref.watch(goalsDaoProvider).watchAlcanciaBalance(),
-                builder: (context, snapshot) {
-                  final balance = snapshot.data?.balance ?? 0.0;
+              alcanciaAsync.when(
+                data: (alcancia) {
+                  final balance = alcancia?.balance ?? 0.0;
                   return Container(
                     margin: const EdgeInsets.all(16),
                     padding: const EdgeInsets.all(20),
@@ -70,6 +75,8 @@ class GoalsScreen extends ConsumerWidget {
                     ),
                   );
                 },
+                loading: () => const SizedBox(height: 120, child: Center(child: CircularProgressIndicator())),
+                error: (_, __) => const SizedBox(height: 120, child: Center(child: Text('Error cargando balance', style: TextStyle(color: Colors.white54)))),
               ),
               Expanded(
                 child: ListView.builder(
@@ -77,7 +84,9 @@ class GoalsScreen extends ConsumerWidget {
                   itemCount: goals.length,
                   itemBuilder: (context, index) {
                     final goal = goals[index];
-                    return _GoalCard(goal: goal);
+                    return RepaintBoundary(
+                      child: _GoalCard(goal: goal),
+                    );
                   },
                 ),
               ),
@@ -105,10 +114,10 @@ class _GoalCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return StreamBuilder<Account>(
-      stream: ref.watch(goalsDaoProvider).watchAlcanciaBalance(),
-      builder: (context, snapshot) {
-        final alcanciaBalance = snapshot.data?.balance ?? 0.0;
+    final alcanciaAsync = ref.watch(alcanciaBalanceProvider);
+    return alcanciaAsync.when(
+      data: (alcancia) {
+        final alcanciaBalance = alcancia?.balance ?? 0.0;
         final effectiveAmount = alcanciaBalance.clamp(0.0, goal.targetAmount);
         final progress = goal.targetAmount > 0 ? effectiveAmount / goal.targetAmount : 0.0;
         final isCompletable = alcanciaBalance >= goal.targetAmount;
@@ -216,6 +225,8 @@ class _GoalCard extends ConsumerWidget {
           ),
         );
       },
+      loading: () => const Card(margin: EdgeInsets.only(bottom: 12), child: SizedBox(height: 100, child: Center(child: CircularProgressIndicator()))),
+      error: (_, __) => const Card(margin: EdgeInsets.only(bottom: 12), child: SizedBox(height: 100, child: Center(child: Text('Error', style: TextStyle(color: Colors.white54))))),
     );
   }
 
@@ -250,6 +261,6 @@ class _GoalCard extends ConsumerWidget {
   }
 }
 
-final activeGoalsProvider = StreamProvider<List<Goal>>((ref) {
+final activeGoalsProvider = StreamProvider.autoDispose<List<Goal>>((ref) {
   return ref.watch(goalsDaoProvider).watchActiveGoals();
 });

@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -6,6 +5,7 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'core/theme/app_theme.dart';
 import 'core/theme/theme_provider.dart';
 import 'core/router/app_router.dart';
+import 'core/automation/automation_engine.dart';
 import 'features/auth/presentation/pin_screen.dart';
 import 'features/auth/providers/auth_providers.dart';
 
@@ -41,6 +41,17 @@ class PlusBalanceApp extends ConsumerStatefulWidget {
 }
 
 class _PlusBalanceAppState extends ConsumerState<PlusBalanceApp> {
+  @override
+  void initState() {
+    super.initState();
+    ref.listenManual(authStateProvider, (previous, next) {
+      if (next.isAuthenticated && !(previous?.isAuthenticated ?? false)) {
+        final router = ref.read(appRouterProvider);
+        router.go('/');
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final themeMode = ref.watch(themeProvider);
@@ -81,6 +92,10 @@ class _PlusBalanceAppState extends ConsumerState<PlusBalanceApp> {
         home: const PinScreen(),
       );
     }
+
+    // Run automation engine once when authenticated
+    // FutureProvider handles caching automatically, so this only runs once
+    ref.watch(automationEngineProvider);
 
     final router = ref.watch(appRouterProvider);
     return MaterialApp.router(
