@@ -53,6 +53,7 @@ class _PlusBalanceAppState extends ConsumerState<PlusBalanceApp> {
         darkTheme: AppTheme.darkTheme,
         themeMode: themeMode,
         locale: const Locale('es'),
+        supportedLocales: const [Locale('es'), Locale('en')],
         localizationsDelegates: const [
           DefaultMaterialLocalizations.delegate,
           DefaultWidgetsLocalizations.delegate,
@@ -69,6 +70,7 @@ class _PlusBalanceAppState extends ConsumerState<PlusBalanceApp> {
         darkTheme: AppTheme.darkTheme,
         themeMode: themeMode,
         locale: const Locale('es'),
+        supportedLocales: const [Locale('es'), Locale('en')],
         localizationsDelegates: const [
           DefaultMaterialLocalizations.delegate,
           DefaultWidgetsLocalizations.delegate,
@@ -85,6 +87,7 @@ class _PlusBalanceAppState extends ConsumerState<PlusBalanceApp> {
       darkTheme: AppTheme.darkTheme,
       themeMode: themeMode,
       locale: const Locale('es'),
+      supportedLocales: const [Locale('es'), Locale('en')],
       localizationsDelegates: const [
         DefaultMaterialLocalizations.delegate,
         DefaultWidgetsLocalizations.delegate,
